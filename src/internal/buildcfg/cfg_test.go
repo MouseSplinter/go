@@ -24,3 +24,18 @@ func TestConfigFlags(t *testing.T) {
 		t.Errorf("Wrong parsing of GOAMD64=1")
 	}
 }
+
+func TestRISCVConfigFlags(t *testing.T) {
+	os.Setenv("GORISCV", "generic")
+	if goriscv64().String() != "c" {
+		t.Errorf("Wrong parsing of GORISCV=generic")
+	}
+	os.Setenv("GORISCV", "")
+	if goriscv64().String() != "c" {
+		t.Errorf("Wrong parsing of no GORISCV")
+	}
+	os.Setenv("GORISCV", "c")
+	if goriscv64().String() != "c" {
+		t.Errorf("Wrong parsing of GORISCV=c")
+	}
+}

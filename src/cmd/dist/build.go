@@ -37,6 +37,7 @@ var (
 	goamd64          string
 	gomips           string
 	gomips64         string
+	goriscv64        string
 	goppc64          string
 	goroot           string
 	goroot_final     string
@@ -171,6 +172,15 @@ func xinit() {
 	}
 	gomips64 = b
 
+	b = os.Getenv("GORISCV64")
+	if b == "" {
+		b = "generic"
+	}
+	// RVC is enabled by default.
+	// Because we have changed `PCQuantum` to 2, we can't disable RVC now.
+	b += ",c"
+	goriscv64 = b
+
 	b = os.Getenv("GOPPC64")
 	if b == "" {
 		b = "power8"
@@ -235,6 +245,7 @@ func xinit() {
 	os.Setenv("GOOS", goos)
 	os.Setenv("GOMIPS", gomips)
 	os.Setenv("GOMIPS64", gomips64)
+	os.Setenv("GORISCV64", goriscv64)
 	os.Setenv("GOPPC64", goppc64)
 	os.Setenv("GOROOT", goroot)
 	os.Setenv("GOROOT_FINAL", goroot_final)
@@ -878,6 +889,17 @@ func runInstall(pkg string, ch chan struct{}) {
 		// Define GOMIPS64_value from gomips64.
 		asmArgs = append(asmArgs, "-D", "GOMIPS64_"+gomips64)
 	}
+	if goarch == "riscv64" {
+		// Define GORISCV64_value from goriscv64.
+		for _, opt := range strings.Split(goriscv64, ",") {
+			switch opt {
+			case "", "generic":
+				asmArgs = append(asmArgs, "-D", "GORISCV64_generic")
+			default:
+				// TODO: warning
+			}
+		}
+	}
 	if goarch == "ppc64" || goarch == "ppc64le" {
 		// We treat each powerpc version as a superset of functionality.
 		switch goppc64 {
@@ -1232,6 +1254,9 @@ func cmdenv() {
 	}
 	if goarch == "mips64" || goarch == "mips64le" {
 		xprintf(format, "GOMIPS64", gomips64)
+	}
+	if goarch == "riscv64" {
+		xprintf(format, "GORISCV64", goriscv64)
 	}
 	if goarch == "ppc64" || goarch == "ppc64le" {
 		xprintf(format, "GOPPC64", goppc64)

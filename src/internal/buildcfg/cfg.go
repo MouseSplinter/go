@@ -21,19 +21,20 @@ import (
 )
 
 var (
-	GOROOT   = runtime.GOROOT() // cached for efficiency
-	GOARCH   = envOr("GOARCH", defaultGOARCH)
-	GOOS     = envOr("GOOS", defaultGOOS)
-	GO386    = envOr("GO386", defaultGO386)
-	GOAMD64  = goamd64()
-	GOARM    = goarm()
-	GOMIPS   = gomips()
-	GOMIPS64 = gomips64()
-	GOPPC64  = goppc64()
-	GOWASM   = gowasm()
-	ToolTags = toolTags()
-	GO_LDSO  = defaultGO_LDSO
-	Version  = version
+	GOROOT    = runtime.GOROOT() // cached for efficiency
+	GOARCH    = envOr("GOARCH", defaultGOARCH)
+	GOOS      = envOr("GOOS", defaultGOOS)
+	GO386     = envOr("GO386", defaultGO386)
+	GOAMD64   = goamd64()
+	GOARM     = goarm()
+	GOMIPS    = gomips()
+	GOMIPS64  = gomips64()
+	GORISCV64 = goriscv64()
+	GOPPC64   = goppc64()
+	GOWASM    = gowasm()
+	ToolTags  = toolTags()
+	GO_LDSO   = defaultGO_LDSO
+	Version   = version
 )
 
 // Error is one of the errors found (if any) in the build configuration.
@@ -103,6 +104,40 @@ func gomips64() string {
 	}
 	Error = fmt.Errorf("invalid GOMIPS64: must be hardfloat, softfloat")
 	return defaultGOMIPS64
+}
+
+// Features apart from generic RISCV features.
+type RISCVFeatures struct {
+	FeatureRVC bool
+}
+
+func (f RISCVFeatures) String() string {
+	var flags []string
+	if f.FeatureRVC {
+		flags = append(flags, "c")
+	}
+	return strings.Join(flags, ",")
+}
+
+func ParseRISCVFeatures(features string) (f RISCVFeatures) {
+	for _, opt := range strings.Split(features, ",") {
+		switch opt {
+		case "c":
+			f.FeatureRVC = true
+		case "", "generic":
+			// ignore
+		default:
+			Error = fmt.Errorf("invalid GORISCV64: no such feature %q", opt)
+		}
+	}
+	// RVC is enabled by default.
+	// Because we have changed `PCQuantum` to 2, we can't disable RVC now.
+	f.FeatureRVC = true
+	return
+}
+
+func goriscv64() (f RISCVFeatures) {
+	return ParseRISCVFeatures(envOr("GORISCV64", defaultGORISCV64))
 }
 
 func goppc64() int {
@@ -187,6 +222,8 @@ func GOGOARCH() (name, value string) {
 		return "GOMIPS", GOMIPS
 	case "mips64", "mips64le":
 		return "GOMIPS64", GOMIPS64
+	case "riscv64":
+		return "GORISCV64", GORISCV64.String()
 	case "ppc64", "ppc64le":
 		return "GOPPC64", fmt.Sprintf("power%d", GOPPC64)
 	case "wasm":
