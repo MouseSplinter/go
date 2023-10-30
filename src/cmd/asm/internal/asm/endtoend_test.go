@@ -480,12 +480,24 @@ func TestPPC64EndToEnd(t *testing.T) {
 }
 
 func TestRISCVEndToEnd(t *testing.T) {
+	buildcfg.GORISCV64.FeatureRVB = false
 	testEndToEnd(t, "riscv64", "riscv64")
 }
 
 func TestRISCVErrors(t *testing.T) {
+	buildcfg.GORISCV64.FeatureRVB = false
 	testErrors(t, "riscv64", "riscv64error")
 }
+
+func TestRISCVRVBEndToEnd(t *testing.T) {
+	buildcfg.GORISCV64.FeatureRVB = true
+	testEndToEnd(t, "riscv64", "riscv64rvb")
+}
+
+// func TestRISCVRVBErrors(t *testing.T) {
+// 	buildcfg.GORISCV64.FeatureRVB = true
+// 	testErrors(t, "riscv64", "riscv64rvberror")
+// }
 
 func TestS390XEndToEnd(t *testing.T) {
 	testEndToEnd(t, "s390x", "s390x")
