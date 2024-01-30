@@ -603,7 +603,7 @@ const (
 	ASEQZ
 	ASNEZ
 
-	// RV64 Bitmanip Extension ISA
+	// rva22u64 Extension
 	// Zba
 	AADDUW
 	ASH1ADD
@@ -613,6 +613,7 @@ const (
 	ASH3ADD
 	ASH3ADDUW
 	ASLLIUW
+
 	// Zbb
 	AANDN
 	ACLZ
@@ -638,6 +639,7 @@ const (
 	ASEXTH
 	AXNOR
 	AZEXTH
+
 	// Zbs
 	ABCLR
 	ABCLRI
@@ -647,6 +649,7 @@ const (
 	ABINVI
 	ABSET
 	ABSETI
+
 	// End marker
 	ALAST
 )

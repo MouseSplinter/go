@@ -480,24 +480,28 @@ func TestPPC64EndToEnd(t *testing.T) {
 }
 
 func TestRISCVEndToEnd(t *testing.T) {
-	buildcfg.GORISCV64.FeatureRVB = false
-	testEndToEnd(t, "riscv64", "riscv64")
+	defer func(old int) { buildcfg.GORISCV64 = old }(buildcfg.GORISCV64)
+	for _, goriscv64 := range []int{20, 22} {
+		t.Logf("GORISCV64=%d", goriscv64)
+		buildcfg.GORISCV64 = goriscv64
+		testEndToEnd(t, "riscv64", "riscv64")
+		if goriscv64 == 22 {
+			testEndToEnd(t, "riscv64", "riscv64rva22u64")
+		}
+	}
 }
 
 func TestRISCVErrors(t *testing.T) {
-	buildcfg.GORISCV64.FeatureRVB = false
-	testErrors(t, "riscv64", "riscv64error")
+	defer func(old int) { buildcfg.GORISCV64 = old }(buildcfg.GORISCV64)
+	for _, goriscv64 := range []int{20, 22} {
+		t.Logf("GORISCV64=%d", goriscv64)
+		buildcfg.GORISCV64 = goriscv64
+		testErrors(t, "riscv64", "riscv64error")
+		if goriscv64 == 22 {
+			testErrors(t, "riscv64", "riscv64rva22u64error")
+		}
+	}
 }
-
-func TestRISCVRVBEndToEnd(t *testing.T) {
-	buildcfg.GORISCV64.FeatureRVB = true
-	testEndToEnd(t, "riscv64", "riscv64rvb")
-}
-
-// func TestRISCVRVBErrors(t *testing.T) {
-// 	buildcfg.GORISCV64.FeatureRVB = true
-// 	testErrors(t, "riscv64", "riscv64rvberror")
-// }
 
 func TestS390XEndToEnd(t *testing.T) {
 	testEndToEnd(t, "s390x", "s390x")

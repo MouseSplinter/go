@@ -5058,7 +5058,7 @@ func InitTables() {
 	/******** math/big ********/
 	alias("math/big", "mulWW", "math/bits", "Mul64", p8...)
 
-	if buildcfg.GORISCV64.FeatureRVB {
+	if buildcfg.GORISCV64 >= 22 {
 		addF("math/bits", "Len64",
 			func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
 				return s.newValue1(ssa.OpBitLen64, types.Types[types.TINT], args[0])
@@ -5109,16 +5109,6 @@ func InitTables() {
 		addF("math/bits", "RotateLeft32",
 			func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
 				return s.newValue2(ssa.OpRotateLeft32, types.Types[types.TUINT32], args[0], args[1])
-			},
-			sys.RISCV64)
-		addF("math/bits", "RotateLeft16",
-			func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
-				return s.newValue2(ssa.OpRotateLeft16, types.Types[types.TUINT16], args[0], args[1])
-			},
-			sys.RISCV64)
-		addF("math/bits", "RotateLeft8",
-			func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
-				return s.newValue2(ssa.OpRotateLeft8, types.Types[types.TUINT8], args[0], args[1])
 			},
 			sys.RISCV64)
 		alias("math/bits", "RotateLeft", "math/bits", "RotateLeft64", sys.ArchRISCV64)

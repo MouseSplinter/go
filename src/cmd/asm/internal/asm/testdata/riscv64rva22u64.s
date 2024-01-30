@@ -7,7 +7,6 @@
 TEXT asmtest(SB),DUPOK|NOSPLIT,$0
 start:
     // RISCV Bitmanip Extension
- 
 	// Zba
 	ADDUW       X10, X11, X12           // 3b86a508
 	ADDUW       X10, X11				// bb85a508
@@ -26,10 +25,10 @@ start:
 	SLLIUW      $31, X17, X18           // 1b99f809
 	SLLIUW      $63, X17				// 9b98f80b
 	SLLIUW      $63, X17, X18           // 1b99f80b
-    SLLIUW      $1, X18, X19            // 9b191908
+	SLLIUW      $1, X18, X19            // 9b191908
 	// pseudo-instructions
 	MOVWU	X19, X20					// 3b8a0908
- 
+
 	// Zbb
 	ANDN    X19, X20, X21               // b37a3a41
 	ANDN    X19, X20					// 337a3a41
@@ -59,9 +58,9 @@ start:
 	ROR     X10, X11					// b3d5a560
 	ROR     $63, X11					// 93d5f563
 	RORI    $63, X11, X12               // 13d6f563
-    RORI    $1, X12, X13                // 93561660
+	RORI    $1, X12, X13                // 93561660
 	RORIW   $31, X13, X14               // 1bd7f661
-    RORIW   $1, X14, X15                // 9b571760
+	RORIW   $1, X14, X15                // 9b571760
 	RORW    X15, X16, X17               // bb58f860
 	RORW    X15, X16					// 3b58f860
 	RORW    $31, X13					// 9bd6f661
@@ -78,13 +77,13 @@ start:
 	// Zbs
 	BCLR    X23, X24, X25               // b31c7c49
 	BCLR    $63, X24					// 131cfc4b
-    BCLRI   $1, X25, X26                // 139d1c48
+	BCLRI   $1, X25, X26                // 139d1c48
 	BEXT    X26, X28, X29               // b35eae49
 	BEXT    $63, X28					// 135efe4b
-    BEXTI   $1, X29, X30                // 13df1e48
+	BEXTI   $1, X29, X30                // 13df1e48
 	BINV    X30, X5, X6                 // 3393e269
 	BINV    $63, X6						// 1313f36b
-    BINVI   $1, X7, X8                  // 13941368
+	BINVI   $1, X7, X8                  // 13941368
 	BSET    X8, X9, X10                 // 33958428
 	BSET    $63, X9						// 9394f42b
-    BSETI   $1, X10, X11                // 93151528
+	BSETI   $1, X10, X11                // 93151528

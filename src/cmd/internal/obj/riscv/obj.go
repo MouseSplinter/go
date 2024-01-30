@@ -1119,10 +1119,10 @@ func wantEvenOffset(ctxt *obj.Link, ins *instruction, offset int64) {
 }
 
 func validateRII(ctxt *obj.Link, ins *instruction) {
-	wantIntReg(ctxt, ins.as, "rd", ins.rd)
-	wantIntReg(ctxt, ins.as, "rs1", ins.rs1)
-	wantNoneReg(ctxt, ins.as, "rs2", ins.rs2)
-	wantNoneReg(ctxt, ins.as, "rs3", ins.rs3)
+	wantIntReg(ctxt, ins, "rd", ins.rd)
+	wantIntReg(ctxt, ins, "rs1", ins.rs1)
+	wantNoneReg(ctxt, ins, "rs2", ins.rs2)
+	wantNoneReg(ctxt, ins, "rs3", ins.rs3)
 }
 
 func validateRIII(ctxt *obj.Link, ins *instruction) {
@@ -1750,6 +1750,7 @@ var encodings = [ALAST & obj.AMask]encoding{
 	ASH3ADD & obj.AMask:   rIIIEncoding,
 	ASH3ADDUW & obj.AMask: rIIIEncoding,
 	ASLLIUW & obj.AMask:   iIEncoding,
+
 	// Zbb
 	AANDN & obj.AMask:  rIIIEncoding,
 	ACLZ & obj.AMask:   rIIEncoding,
@@ -1775,6 +1776,7 @@ var encodings = [ALAST & obj.AMask]encoding{
 	ASEXTH & obj.AMask: rIIEncoding,
 	AXNOR & obj.AMask:  rIIIEncoding,
 	AZEXTH & obj.AMask: rIIEncoding,
+
 	// Zbs
 	ABCLR & obj.AMask:  rIIIEncoding,
 	ABCLRI & obj.AMask: iIEncoding,
@@ -2150,7 +2152,7 @@ func instructionsForMOV(p *obj.Prog) []*instruction {
 		case AMOVD: // MOVD Ra, Rb -> FSGNJD Ra, Ra, Rb
 			ins.as, ins.rs1 = AFSGNJD, uint32(p.From.Reg)
 		case AMOVB, AMOVH:
-			if buildcfg.GORISCV64.FeatureRVB {
+			if buildcfg.GORISCV64 >= 22 {
 				ins.rs1 = uint32(p.From.Reg)
 				ins.rs2 = obj.REG_NONE
 				if p.As == AMOVB { // MOVB Ra, Rb -> SEXTB Ra, Rb
@@ -2171,7 +2173,7 @@ func instructionsForMOV(p *obj.Prog) []*instruction {
 			ins2 := &instruction{as: ASRAI, rd: ins.rd, rs1: ins.rd, imm: ins.imm}
 			inss = append(inss, ins2)
 		case AMOVHU, AMOVWU:
-			if buildcfg.GORISCV64.FeatureRVB {
+			if buildcfg.GORISCV64 >= 22 {
 				ins.rs1 = uint32(p.From.Reg)
 				if p.As == AMOVHU { // MOVHU Ra, Rb -> ZEXTH Ra, Rb
 					ins.as = AZEXTH
@@ -2288,69 +2290,6 @@ func instructionsForMOV(p *obj.Prog) []*instruction {
 	return inss
 }
 
-// func instructionForRVB(p *obj.Prog, ins *instruction, inss []*instruction) ([]*instruction, bool) {
-// 	switch p.As {
-// 	// RVB Standard Extension for Bit-Manipulation Instructions, Version 1.0.0
-// 	// Zba: Accelerate the Generation of Addresses that Index into Arrays of Basic Types
-// 	case AADDUW, ASH1ADD, ASH1ADDUW, ASH2ADD, ASH2ADDUW, ASH3ADD, ASH3ADDUW:
-// 	case ASLLIUW:
-// 		ins.rs2 = obj.REG_NONE
-// 		if ins.imm < 0 || ins.imm > 63 {
-// 			p.Ctxt.Diag("%v: shift amount out of range 0 to 63", p)
-// 			return nil, false
-// 		}
-// 	// Zbb: Basic Bit-Manipulation Instructions
-// 	// Logical with Negate
-// 	case AANDN, AORN, AXNOR:
-// 	// Count Leading/Trailing Zero Bits
-// 	case ACLZ, ACLZW, ACTZ, ACTZW:
-// 		ins.rs1 = uint32(p.From.Reg)
-// 		ins.rs2 = obj.REG_NONE
-// 	// Count Population
-// 	case ACLZ, ACLZW, ACTZ, ACTZW, ACPOP, ACPOPW:
-// 		ins.rs1 = uint32(p.From.Reg)
-// 		ins.rs2 = obj.REG_NONE
-// 	// Integer Minimum/Maximum
-// 	case AMAX, AMAXU, AMIN, AMINU:
-// 	// OR Combine and Reverse Bytes
-// 	case AORCB, AREV8:
-// 		insEnc := encode(p.As)
-// 		ins.rd = uint32(p.To.Reg)
-// 		ins.rs1 = uint32(p.From.Reg)
-// 		ins.rs2 = obj.REG_NONE
-// 		ins.imm = insEnc.csr
-// 	// Bitwise Rotation
-// 	case AROL, AROLW, AROR, ARORW:
-// 	case ASLLIUW, ARORI:
-// 		ins.rs2 = obj.REG_NONE
-// 		if ins.imm < 0 || ins.imm > 63 {
-// 			p.Ctxt.Diag("%v: shift amount out of range 0 to 63", p)
-// 			return nil, false
-// 		}
-// 	case ARORIW:
-// 		ins.rs2 = obj.REG_NONE
-// 		if ins.imm < 0 || ins.imm > 31 {
-// 			p.Ctxt.Diag("%v: shift amount out of range 0 to 31", p)
-// 			return nil, false
-// 		}
-// 	// Sign- and Zero-extension
-// 	case ACLZ, ACLZW, ACTZ, ACTZW, ACPOP, ACPOPW, ASEXTB, ASEXTH, AZEXTH:
-// 		ins.rs1 = uint32(p.From.Reg)
-// 		ins.rs2 = obj.REG_NONE
-// 	// Zbs: Single-bit Instructions
-// 	case ABCLR, ABEXT, ABINV, ABSET:
-// 	case ASLLIUW, ARORI, ABCLRI, ABEXTI, ABINVI, ABSETI:
-// 		ins.rs2 = obj.REG_NONE
-// 		if ins.imm < 0 || ins.imm > 63 {
-// 			p.Ctxt.Diag("%v: shift amount out of range 0 to 63", p)
-// 			return nil, false
-// 		}
-// 	default:
-// 		return nil, true
-// 	}
-// 	return inss, true
-// }
-
 // instructionsForProg returns the machine instructions for an *obj.Prog.
 func instructionsForProg(p *obj.Prog) []*instruction {
 	ins := instructionForProg(p)
@@ -2360,14 +2299,6 @@ func instructionsForProg(p *obj.Prog) []*instruction {
 		p.Ctxt.Diag("too many source registers")
 		return nil
 	}
-
-	// rvb, success := instructionForRVB(p, ins, inss)
-	// if !success {
-	// 	return nil
-	// }
-	// if rvb != nil {
-	// 	return rvb
-	// }
 
 	switch ins.as {
 	case AJAL, AJALR:

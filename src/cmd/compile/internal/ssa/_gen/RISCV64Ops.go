@@ -461,7 +461,7 @@ func init() {
 		{name: "LoweredFMIND", argLength: 2, reg: fp21, resultNotInArgs: true, asm: "FMIND", commutative: true, typ: "Float64"},             // min(arg0, arg1)
 		{name: "LoweredFMAXD", argLength: 2, reg: fp21, resultNotInArgs: true, asm: "FMAXD", commutative: true, typ: "Float64"},             // max(arg0, arg1)
 
-		// RV64 Bitmanip Extension ISA
+		// rva22u64 Extension
 		{name: "ADDUW", argLength: 2, reg: gp21, asm: "ADDUW"},
 		{name: "SH1ADD", argLength: 2, reg: gp21, asm: "SH1ADD"},
 		{name: "SH1ADDUW", argLength: 2, reg: gp21, asm: "SH1ADDUW"},

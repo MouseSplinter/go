@@ -20,6 +20,7 @@ func LeadingZeros(n uint) int {
 	// mips:"CLZ"
 	// wasm:"I64Clz"
 	// ppc64x:"CNTLZD"
+	// riscv64/rva22u64:"CLZ"
 	return bits.LeadingZeros(n)
 }
 
@@ -31,6 +32,7 @@ func LeadingZeros64(n uint64) int {
 	// mips:"CLZ"
 	// wasm:"I64Clz"
 	// ppc64x:"CNTLZD"
+	// riscv64/rva22u64:"CLZ"
 	return bits.LeadingZeros64(n)
 }
 
@@ -42,6 +44,7 @@ func LeadingZeros32(n uint32) int {
 	// mips:"CLZ"
 	// wasm:"I64Clz"
 	// ppc64x:"CNTLZW"
+	// riscv64/rva22u64:"CLZW"
 	return bits.LeadingZeros32(n)
 }
 
@@ -53,6 +56,7 @@ func LeadingZeros16(n uint16) int {
 	// mips:"CLZ"
 	// wasm:"I64Clz"
 	// ppc64x:"CNTLZD"
+	// riscv64/rva22u64:"CLZW"
 	return bits.LeadingZeros16(n)
 }
 
@@ -64,6 +68,7 @@ func LeadingZeros8(n uint8) int {
 	// mips:"CLZ"
 	// wasm:"I64Clz"
 	// ppc64x:"CNTLZD"
+	// riscv64/rva22u64:"CLZW"
 	return bits.LeadingZeros8(n)
 }
 
@@ -79,6 +84,7 @@ func Len(n uint) int {
 	// mips:"CLZ"
 	// wasm:"I64Clz"
 	// ppc64x:"SUBC","CNTLZD"
+	// riscv64/rva22u64:"CLZ"
 	return bits.Len(n)
 }
 
@@ -90,6 +96,7 @@ func Len64(n uint64) int {
 	// mips:"CLZ"
 	// wasm:"I64Clz"
 	// ppc64x:"SUBC","CNTLZD"
+	// riscv64/rva22u64:"CLZ"
 	return bits.Len64(n)
 }
 
@@ -106,6 +113,7 @@ func Len32(n uint32) int {
 	// mips:"CLZ"
 	// wasm:"I64Clz"
 	// ppc64x: "CNTLZW"
+	// riscv64/rva22u64:"CLZW"
 	return bits.Len32(n)
 }
 
@@ -117,6 +125,7 @@ func Len16(n uint16) int {
 	// mips:"CLZ"
 	// wasm:"I64Clz"
 	// ppc64x:"SUBC","CNTLZD"
+	// riscv64/rva22u64:"CLZW"
 	return bits.Len16(n)
 }
 
@@ -128,6 +137,7 @@ func Len8(n uint8) int {
 	// mips:"CLZ"
 	// wasm:"I64Clz"
 	// ppc64x:"SUBC","CNTLZD"
+	// riscv64/rva22u64:"CLZW"
 	return bits.Len8(n)
 }
 
@@ -143,6 +153,7 @@ func OnesCount(n uint) int {
 	// s390x:"POPCNT"
 	// ppc64x:"POPCNTD"
 	// wasm:"I64Popcnt"
+	// riscv64/rva22u64:"CPOP"
 	return bits.OnesCount(n)
 }
 
@@ -153,6 +164,7 @@ func OnesCount64(n uint64) int {
 	// s390x:"POPCNT"
 	// ppc64x:"POPCNTD"
 	// wasm:"I64Popcnt"
+	// riscv64/rva22u64:"CPOP"
 	return bits.OnesCount64(n)
 }
 
@@ -163,6 +175,7 @@ func OnesCount32(n uint32) int {
 	// s390x:"POPCNT"
 	// ppc64x:"POPCNTW"
 	// wasm:"I64Popcnt"
+	// riscv64/rva22u64:"CPOPW"
 	return bits.OnesCount32(n)
 }
 
@@ -173,6 +186,7 @@ func OnesCount16(n uint16) int {
 	// s390x:"POPCNT"
 	// ppc64x:"POPCNTW"
 	// wasm:"I64Popcnt"
+	// riscv64/rva22u64:"CPOPW"
 	return bits.OnesCount16(n)
 }
 
@@ -180,6 +194,7 @@ func OnesCount8(n uint8) int {
 	// s390x:"POPCNT"
 	// ppc64x:"POPCNTB"
 	// wasm:"I64Popcnt"
+	// riscv64/rva22u64:"CPOPW"
 	return bits.OnesCount8(n)
 }
 
@@ -192,6 +207,7 @@ func ReverseBytes(n uint) uint {
 	// 386:"BSWAPL"
 	// s390x:"MOVDBR"
 	// arm64:"REV"
+	// riscv64/rva22u64:"REV8"
 	return bits.ReverseBytes(n)
 }
 
@@ -201,6 +217,7 @@ func ReverseBytes64(n uint64) uint64 {
 	// s390x:"MOVDBR"
 	// arm64:"REV"
 	// ppc64x/power10: "BRD"
+	// riscv64/rva22u64:"REV8"
 	return bits.ReverseBytes64(n)
 }
 
@@ -210,6 +227,7 @@ func ReverseBytes32(n uint32) uint32 {
 	// s390x:"MOVWBR"
 	// arm64:"REVW"
 	// ppc64x/power10: "BRW"
+	// riscv64/rva22u64:"REV8"
 	return bits.ReverseBytes32(n)
 }
 
@@ -220,6 +238,7 @@ func ReverseBytes16(n uint16) uint16 {
 	// arm/6:"REV16"
 	// arm/7:"REV16"
 	// ppc64x/power10: "BRH"
+	// riscv64/rva22u64:"REV8"
 	return bits.ReverseBytes16(n)
 }
 
@@ -233,6 +252,7 @@ func RotateLeft64(n uint64) uint64 {
 	// ppc64x:"ROTL"
 	// s390x:"RISBGZ\t[$]0, [$]63, [$]37, "
 	// wasm:"I64Rotl"
+	// riscv64/rva22u64:"RORI"
 	return bits.RotateLeft64(n, 37)
 }
 
@@ -243,6 +263,7 @@ func RotateLeft32(n uint32) uint32 {
 	// ppc64x:"ROTLW"
 	// s390x:"RLL"
 	// wasm:"I32Rotl"
+	// riscv64/rva22u64:"RORIW"
 	return bits.RotateLeft32(n, 9)
 }
 
@@ -264,6 +285,7 @@ func RotateLeftVariable(n uint, m int) uint {
 	// ppc64x:"ROTL"
 	// s390x:"RLLG"
 	// wasm:"I64Rotl"
+	// riscv64/rva22u64:"ROL"
 	return bits.RotateLeft(n, m)
 }
 
@@ -273,6 +295,7 @@ func RotateLeftVariable64(n uint64, m int) uint64 {
 	// ppc64x:"ROTL"
 	// s390x:"RLLG"
 	// wasm:"I64Rotl"
+	// riscv64/rva22u64:"ROL"
 	return bits.RotateLeft64(n, m)
 }
 
@@ -283,6 +306,7 @@ func RotateLeftVariable32(n uint32, m int) uint32 {
 	// ppc64x:"ROTLW"
 	// s390x:"RLL"
 	// wasm:"I32Rotl"
+	// riscv64/rva22u64:"ROLW"
 	return bits.RotateLeft32(n, m)
 }
 
@@ -300,6 +324,7 @@ func TrailingZeros(n uint) int {
 	// ppc64x/power8:"ANDN","POPCNTD"
 	// ppc64x/power9: "CNTTZD"
 	// wasm:"I64Ctz"
+	// riscv64/rva22u64:"CTZ"
 	return bits.TrailingZeros(n)
 }
 
@@ -312,6 +337,7 @@ func TrailingZeros64(n uint64) int {
 	// ppc64x/power8:"ANDN","POPCNTD"
 	// ppc64x/power9: "CNTTZD"
 	// wasm:"I64Ctz"
+	// riscv64/rva22u64:"CTZ"
 	return bits.TrailingZeros64(n)
 }
 
@@ -331,6 +357,7 @@ func TrailingZeros32(n uint32) int {
 	// ppc64x/power8:"ANDN","POPCNTW"
 	// ppc64x/power9: "CNTTZW"
 	// wasm:"I64Ctz"
+	// riscv64/rva22u64:"CTZW"
 	return bits.TrailingZeros32(n)
 }
 
@@ -343,6 +370,7 @@ func TrailingZeros16(n uint16) int {
 	// ppc64x/power8:"POPCNTD","ORIS\\t\\$1"
 	// ppc64x/power9:"CNTTZD","ORIS\\t\\$1"
 	// wasm:"I64Ctz"
+	// riscv64/rva22u64:"CTZW"
 	return bits.TrailingZeros16(n)
 }
 
@@ -353,6 +381,7 @@ func TrailingZeros8(n uint8) int {
 	// arm64:"ORR\t\\$256","RBITW","CLZW",-"MOVBU\tR",-"RBIT\t",-"CLZ\t"
 	// s390x:"FLOGR","OR\t\\$256"
 	// wasm:"I64Ctz"
+	// riscv64/rva22u64:"CTZW"
 	return bits.TrailingZeros8(n)
 }
 

@@ -37,11 +37,6 @@ var (
 	Version   = version
 )
 
-// Features apart from generic RISCV features.
-type RISCVFeatures struct {
-	FeatureRVB bool
-}
-
 // Error is one of the errors found (if any) in the build configuration.
 var Error error
 
