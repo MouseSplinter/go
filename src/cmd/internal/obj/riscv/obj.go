@@ -26,7 +26,6 @@ import (
 	"cmd/internal/sys"
 	"fmt"
 	"internal/abi"
-	"internal/buildcfg"
 	"log"
 	"math/bits"
 )
@@ -1740,8 +1739,17 @@ var encodings = [ALAST & obj.AMask]encoding{
 	// 12.7: Double-Precision Floating-Point Classify Instruction
 	AFCLASSD & obj.AMask: rFIEncoding,
 
-	// RVB Standard Extension for Bit-Manipulation Instructions
-	// Zba
+	// Privileged ISA
+
+	// 3.2.1: Environment Call and Breakpoint
+	AECALL & obj.AMask:  iIEncoding,
+	AEBREAK & obj.AMask: iIEncoding,
+
+	//
+	// RISC-V Bit-Manipulation ISA-extensions (1.0)
+	//
+
+	// 1.1: Address Generation Instructions (Zba)
 	AADDUW & obj.AMask:    rIIIEncoding,
 	ASH1ADD & obj.AMask:   rIIIEncoding,
 	ASH1ADDUW & obj.AMask: rIIIEncoding,
@@ -1751,7 +1759,7 @@ var encodings = [ALAST & obj.AMask]encoding{
 	ASH3ADDUW & obj.AMask: rIIIEncoding,
 	ASLLIUW & obj.AMask:   iIEncoding,
 
-	// Zbb
+	// 1.2: Basic Bit Manipulation (Zbb)
 	AANDN & obj.AMask:  rIIIEncoding,
 	ACLZ & obj.AMask:   rIIEncoding,
 	ACLZW & obj.AMask:  rIIEncoding,
@@ -1763,21 +1771,23 @@ var encodings = [ALAST & obj.AMask]encoding{
 	AMAXU & obj.AMask:  rIIIEncoding,
 	AMIN & obj.AMask:   rIIIEncoding,
 	AMINU & obj.AMask:  rIIIEncoding,
-	AORCB & obj.AMask:  iIEncoding,
 	AORN & obj.AMask:   rIIIEncoding,
-	AREV8 & obj.AMask:  iIEncoding,
+	ASEXTB & obj.AMask: rIIEncoding,
+	ASEXTH & obj.AMask: rIIEncoding,
+	AXNOR & obj.AMask:  rIIIEncoding,
+	AZEXTH & obj.AMask: rIIEncoding,
+
+	// 1.3: Bitwise Rotation (Zbb)
 	AROL & obj.AMask:   rIIIEncoding,
 	AROLW & obj.AMask:  rIIIEncoding,
 	AROR & obj.AMask:   rIIIEncoding,
 	ARORI & obj.AMask:  iIEncoding,
 	ARORIW & obj.AMask: iIEncoding,
 	ARORW & obj.AMask:  rIIIEncoding,
-	ASEXTB & obj.AMask: rIIEncoding,
-	ASEXTH & obj.AMask: rIIEncoding,
-	AXNOR & obj.AMask:  rIIIEncoding,
-	AZEXTH & obj.AMask: rIIEncoding,
+	AORCB & obj.AMask:  iIEncoding,
+	AREV8 & obj.AMask:  iIEncoding,
 
-	// Zbs
+	// 1.5: Single-bit Instructions (Zbs)
 	ABCLR & obj.AMask:  rIIIEncoding,
 	ABCLRI & obj.AMask: iIEncoding,
 	ABEXT & obj.AMask:  rIIIEncoding,
@@ -1786,12 +1796,6 @@ var encodings = [ALAST & obj.AMask]encoding{
 	ABINVI & obj.AMask: iIEncoding,
 	ABSET & obj.AMask:  rIIIEncoding,
 	ABSETI & obj.AMask: iIEncoding,
-
-	// Privileged ISA
-
-	// 3.2.1: Environment Call and Breakpoint
-	AECALL & obj.AMask:  iIEncoding,
-	AEBREAK & obj.AMask: iIEncoding,
 
 	// Escape hatch
 	AWORD & obj.AMask: rawEncoding,
@@ -2152,17 +2156,6 @@ func instructionsForMOV(p *obj.Prog) []*instruction {
 		case AMOVD: // MOVD Ra, Rb -> FSGNJD Ra, Ra, Rb
 			ins.as, ins.rs1 = AFSGNJD, uint32(p.From.Reg)
 		case AMOVB, AMOVH:
-			if buildcfg.GORISCV64 >= 22 {
-				ins.rs1 = uint32(p.From.Reg)
-				ins.rs2 = obj.REG_NONE
-				if p.As == AMOVB { // MOVB Ra, Rb -> SEXTB Ra, Rb
-					ins.as = ASEXTB
-				}
-				if p.As == AMOVH { // MOVH Ra, Rb -> SEXTH Ra, Rb
-					ins.as = ASEXTH
-				}
-				break
-			}
 			// Use SLLI/SRAI to extend.
 			ins.as, ins.rs1, ins.rs2 = ASLLI, uint32(p.From.Reg), obj.REG_NONE
 			if p.As == AMOVB {
@@ -2173,18 +2166,6 @@ func instructionsForMOV(p *obj.Prog) []*instruction {
 			ins2 := &instruction{as: ASRAI, rd: ins.rd, rs1: ins.rd, imm: ins.imm}
 			inss = append(inss, ins2)
 		case AMOVHU, AMOVWU:
-			if buildcfg.GORISCV64 >= 22 {
-				ins.rs1 = uint32(p.From.Reg)
-				if p.As == AMOVHU { // MOVHU Ra, Rb -> ZEXTH Ra, Rb
-					ins.as = AZEXTH
-					ins.rs2 = obj.REG_NONE
-				}
-				if p.As == AMOVWU { // MOVWU Ra, Rb -> ADDUW X0, Ra, Rb
-					ins.as = AADDUW
-					ins.rs2 = REG_ZERO
-				}
-				break
-			}
 			// Use SLLI/SRLI to extend.
 			ins.as, ins.rs1, ins.rs2 = ASLLI, uint32(p.From.Reg), obj.REG_NONE
 			if p.As == AMOVHU {
@@ -2456,25 +2437,21 @@ func instructionsForProg(p *obj.Prog) []*instruction {
 		ins.as = AFSGNJND
 		ins.rs1 = uint32(p.From.Reg)
 
-	case ASLLI, ASRLI, ASRAI, ASLLIUW, ARORI, ABCLRI, ABEXTI, ABINVI, ABSETI:
+	case ABCLRI, ABEXTI, ABINVI, ABSETI, ARORI, ASLLI, ASRLI, ASRAI, ASLLIUW:
 		if ins.imm < 0 || ins.imm > 63 {
-			p.Ctxt.Diag("%v: shift amount out of range 0 to 63", p)
+			p.Ctxt.Diag("%v: immediate out of range 0 to 63", p)
 		}
 
-	case ASLLIW, ASRLIW, ASRAIW, ARORIW:
+	case ARORIW, ASLLIW, ASRLIW, ASRAIW:
 		if ins.imm < 0 || ins.imm > 31 {
-			p.Ctxt.Diag("%v: shift amount out of range 0 to 31", p)
+			p.Ctxt.Diag("%v: immediate out of range 0 to 31", p)
 		}
+
 	case ACLZ, ACLZW, ACTZ, ACTZW, ACPOP, ACPOPW, ASEXTB, ASEXTH, AZEXTH:
-		ins.rs1 = uint32(p.From.Reg)
-		ins.rs2 = obj.REG_NONE
+		ins.rs1, ins.rs2 = uint32(p.From.Reg), obj.REG_NONE
 
 	case AORCB, AREV8:
-		insEnc := encode(p.As)
-		ins.rd = uint32(p.To.Reg)
-		ins.rs1 = uint32(p.From.Reg)
-		ins.rs2 = obj.REG_NONE
-		ins.imm = insEnc.csr
+		ins.rd, ins.rs1, ins.rs2 = uint32(p.To.Reg), uint32(p.From.Reg), obj.REG_NONE
 	}
 
 	for _, ins := range inss {

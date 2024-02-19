@@ -480,27 +480,11 @@ func TestPPC64EndToEnd(t *testing.T) {
 }
 
 func TestRISCVEndToEnd(t *testing.T) {
-	defer func(old int) { buildcfg.GORISCV64 = old }(buildcfg.GORISCV64)
-	for _, goriscv64 := range []int{20, 22} {
-		t.Logf("GORISCV64=%d", goriscv64)
-		buildcfg.GORISCV64 = goriscv64
-		testEndToEnd(t, "riscv64", "riscv64")
-		if goriscv64 == 22 {
-			testEndToEnd(t, "riscv64", "riscv64rva22u64")
-		}
-	}
+	testEndToEnd(t, "riscv64", "riscv64")
 }
 
 func TestRISCVErrors(t *testing.T) {
-	defer func(old int) { buildcfg.GORISCV64 = old }(buildcfg.GORISCV64)
-	for _, goriscv64 := range []int{20, 22} {
-		t.Logf("GORISCV64=%d", goriscv64)
-		buildcfg.GORISCV64 = goriscv64
-		testErrors(t, "riscv64", "riscv64error")
-		if goriscv64 == 22 {
-			testErrors(t, "riscv64", "riscv64rva22u64error")
-		}
-	}
+	testErrors(t, "riscv64", "riscv64error")
 }
 
 func TestS390XEndToEnd(t *testing.T) {
