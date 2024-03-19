@@ -6,9 +6,9 @@
 // functionality. The design is Unix-like, although the error handling is
 // Go-like; failing calls return values of type error rather than error numbers.
 // Often, more information is available within the error. For example,
-// if a call that takes a file name fails, such as Open or Stat, the error
+// if a call that takes a file name fails, such as [Open] or [Stat], the error
 // will include the failing file name when printed and will be of type
-// *PathError, which may be unpacked for more information.
+// [*PathError], which may be unpacked for more information.
 //
 // The os interface is intended to be uniform across all operating systems.
 // Features not generally available appear in the system-specific package syscall.
@@ -380,6 +380,14 @@ func OpenFile(name string, flag int, perm FileMode) (*File, error) {
 	return f, nil
 }
 
+// openDir opens a file which is assumed to be a directory. As such, it skips
+// the syscalls that make the file descriptor non-blocking as these take time
+// and will fail on file descriptors for directories.
+func openDir(name string) (*File, error) {
+	testlog.Open(name)
+	return openDirNolog(name)
+}
+
 // lstat is overridden in tests.
 var lstat = Lstat
 
@@ -747,10 +755,7 @@ func (dir dirFS) join(name string) (string, error) {
 	if dir == "" {
 		return "", errors.New("os: DirFS with empty root")
 	}
-	if !fs.ValidPath(name) {
-		return "", ErrInvalid
-	}
-	name, err := safefilepath.FromFS(name)
+	name, err := safefilepath.Localize(name)
 	if err != nil {
 		return "", ErrInvalid
 	}

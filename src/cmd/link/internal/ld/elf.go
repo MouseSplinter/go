@@ -1056,11 +1056,17 @@ func elfdynhash(ctxt *Link) {
 	}
 
 	s = ldr.CreateSymForUpdate(".dynamic", 0)
-	if ctxt.BuildMode == BuildModePIE {
-		// https://github.com/bminor/glibc/blob/895ef79e04a953cac1493863bcae29ad85657ee1/elf/elf.h#L986
-		const DTFLAGS_1_PIE = 0x08000000
-		Elfwritedynent(ctxt.Arch, s, elf.DT_FLAGS_1, uint64(DTFLAGS_1_PIE))
+
+	var dtFlags1 elf.DynFlag1
+	if *flagBindNow {
+		dtFlags1 |= elf.DF_1_NOW
+		Elfwritedynent(ctxt.Arch, s, elf.DT_FLAGS, uint64(elf.DF_BIND_NOW))
 	}
+	if ctxt.BuildMode == BuildModePIE {
+		dtFlags1 |= elf.DF_1_PIE
+	}
+	Elfwritedynent(ctxt.Arch, s, elf.DT_FLAGS_1, uint64(dtFlags1))
+
 	elfverneed = nfile
 	if elfverneed != 0 {
 		elfWriteDynEntSym(ctxt, s, elf.DT_VERNEED, gnuVersionR.Sym())
@@ -2167,6 +2173,10 @@ func asmbElf(ctxt *Link) {
 		ph.Type = elf.PT_GNU_STACK
 		ph.Flags = elf.PF_W + elf.PF_R
 		ph.Align = uint64(ctxt.Arch.RegSize)
+	} else if ctxt.HeadType == objabi.Hopenbsd {
+		ph := newElfPhdr()
+		ph.Type = elf.PT_OPENBSD_NOBTCFI
+		ph.Flags = elf.PF_X
 	} else if ctxt.HeadType == objabi.Hsolaris {
 		ph := newElfPhdr()
 		ph.Type = elf.PT_SUNWSTACK

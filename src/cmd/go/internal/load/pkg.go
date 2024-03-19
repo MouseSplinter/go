@@ -1937,6 +1937,8 @@ func (p *Package) load(ctx context.Context, opts PackageOpts, path string, stk *
 	}
 
 	// Check for case-insensitive collisions of import paths.
+	// If modifying, consider changing checkPathCollisions() in
+	// src/cmd/go/internal/modcmd/vendor.go
 	fold := str.ToFold(p.ImportPath)
 	if other := foldPath[fold]; other == "" {
 		foldPath[fold] = p.ImportPath
@@ -2306,7 +2308,7 @@ func (p *Package) setBuildInfo(ctx context.Context, autoVCS bool) {
 		}
 		if mi.Replace != nil {
 			dm.Replace = debugModFromModinfo(mi.Replace)
-		} else if mi.Version != "" {
+		} else if mi.Version != "" && cfg.BuildMod != "vendor" {
 			dm.Sum = modfetch.Sum(ctx, module.Version{Path: mi.Path, Version: mi.Version})
 		}
 		return dm

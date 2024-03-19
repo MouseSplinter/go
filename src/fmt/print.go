@@ -703,11 +703,6 @@ func (p *pp) printArg(arg any, verb rune) {
 		return
 	}
 
-	// Bug fix: avoid padding strings with zeros. Issue 56486.
-	if verb == 's' {
-		p.fmt.zero = false
-	}
-
 	// Some types can be done without reflection.
 	switch f := arg.(type) {
 	case bool:
@@ -1053,12 +1048,11 @@ formatLoop:
 			case '#':
 				p.fmt.sharp = true
 			case '0':
-				p.fmt.zero = !p.fmt.minus // Only allow zero padding to the left.
+				p.fmt.zero = true
 			case '+':
 				p.fmt.plus = true
 			case '-':
 				p.fmt.minus = true
-				p.fmt.zero = false // Do not pad with zeros to the right.
 			case ' ':
 				p.fmt.space = true
 			default:

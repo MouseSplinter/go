@@ -207,25 +207,33 @@ func init() {
 		{name: "MOVDnop", argLength: 1, reg: regInfo{inputs: []regMask{gpMask}, outputs: []regMask{gpMask}}, resultInArg0: true}, // nop, return arg0 in same register
 
 		// Shift ops
-		{name: "SLL", argLength: 2, reg: gp21, asm: "SLL"},                   // arg0 << (aux1 & 63)
-		{name: "SRA", argLength: 2, reg: gp21, asm: "SRA"},                   // arg0 >> (aux1 & 63), signed
-		{name: "SRAW", argLength: 2, reg: gp21, asm: "SRAW"},                 // arg0 >> (aux1 & 31), signed
-		{name: "SRL", argLength: 2, reg: gp21, asm: "SRL"},                   // arg0 >> (aux1 & 63), unsigned
-		{name: "SRLW", argLength: 2, reg: gp21, asm: "SRLW"},                 // arg0 >> (aux1 & 31), unsigned
-		{name: "SLLI", argLength: 1, reg: gp11, asm: "SLLI", aux: "Int64"},   // arg0 << auxint, shift amount 0-63
-		{name: "SRAI", argLength: 1, reg: gp11, asm: "SRAI", aux: "Int64"},   // arg0 >> auxint, signed, shift amount 0-63
-		{name: "SRAIW", argLength: 1, reg: gp11, asm: "SRAIW", aux: "Int64"}, // arg0 >> auxint, signed, shift amount 0-31
-		{name: "SRLI", argLength: 1, reg: gp11, asm: "SRLI", aux: "Int64"},   // arg0 >> auxint, unsigned, shift amount 0-63
-		{name: "SRLIW", argLength: 1, reg: gp11, asm: "SRLIW", aux: "Int64"}, // arg0 >> auxint, unsigned, shift amount 0-31
+		{name: "SLL", argLength: 2, reg: gp21, asm: "SLL"},                   // arg0 << (aux1 & 63), logical left shift
+		{name: "SLLW", argLength: 2, reg: gp21, asm: "SLLW"},                 // arg0 << (aux1 & 31), logical left shift of 32 bit value, sign extended to 64 bits
+		{name: "SRA", argLength: 2, reg: gp21, asm: "SRA"},                   // arg0 >> (aux1 & 63), arithmetic right shift
+		{name: "SRAW", argLength: 2, reg: gp21, asm: "SRAW"},                 // arg0 >> (aux1 & 31), arithmetic right shift of 32 bit value, sign extended to 64 bits
+		{name: "SRL", argLength: 2, reg: gp21, asm: "SRL"},                   // arg0 >> (aux1 & 63), logical right shift
+		{name: "SRLW", argLength: 2, reg: gp21, asm: "SRLW"},                 // arg0 >> (aux1 & 31), logical right shift of 32 bit value, sign extended to 64 bits
+		{name: "SLLI", argLength: 1, reg: gp11, asm: "SLLI", aux: "Int64"},   // arg0 << auxint, shift amount 0-63, logical left shift
+		{name: "SLLIW", argLength: 1, reg: gp11, asm: "SLLIW", aux: "Int64"}, // arg0 << auxint, shift amount 0-31, logical left shift of 32 bit value, sign extended to 64 bits
+		{name: "SRAI", argLength: 1, reg: gp11, asm: "SRAI", aux: "Int64"},   // arg0 >> auxint, shift amount 0-63, arithmetic right shift
+		{name: "SRAIW", argLength: 1, reg: gp11, asm: "SRAIW", aux: "Int64"}, // arg0 >> auxint, shift amount 0-31, arithmetic right shift of 32 bit value, sign extended to 64 bits
+		{name: "SRLI", argLength: 1, reg: gp11, asm: "SRLI", aux: "Int64"},   // arg0 >> auxint, shift amount 0-63, logical right shift
+		{name: "SRLIW", argLength: 1, reg: gp11, asm: "SRLIW", aux: "Int64"}, // arg0 >> auxint, shift amount 0-31, logical right shift of 32 bit value, sign extended to 64 bits
 
 		// Bitwise ops
-		{name: "XOR", argLength: 2, reg: gp21, asm: "XOR", commutative: true}, // arg0 ^ arg1
-		{name: "XORI", argLength: 1, reg: gp11, asm: "XORI", aux: "Int64"},    // arg0 ^ auxint
-		{name: "OR", argLength: 2, reg: gp21, asm: "OR", commutative: true},   // arg0 | arg1
-		{name: "ORI", argLength: 1, reg: gp11, asm: "ORI", aux: "Int64"},      // arg0 | auxint
 		{name: "AND", argLength: 2, reg: gp21, asm: "AND", commutative: true}, // arg0 & arg1
 		{name: "ANDI", argLength: 1, reg: gp11, asm: "ANDI", aux: "Int64"},    // arg0 & auxint
 		{name: "NOT", argLength: 1, reg: gp11, asm: "NOT"},                    // ^arg0
+		{name: "OR", argLength: 2, reg: gp21, asm: "OR", commutative: true},   // arg0 | arg1
+		{name: "ORI", argLength: 1, reg: gp11, asm: "ORI", aux: "Int64"},      // arg0 | auxint
+		{name: "ROL", argLength: 2, reg: gp21, asm: "ROL"},                    // rotate left arg0 by (arg1 & 63)
+		{name: "ROLW", argLength: 2, reg: gp21, asm: "ROLW"},                  // rotate left least significant word of arg0 by (arg1 & 31), sign extended
+		{name: "ROR", argLength: 2, reg: gp21, asm: "ROR"},                    // rotate right arg0 by (arg1 & 63)
+		{name: "RORI", argLength: 1, reg: gp11, asm: "RORI", aux: "Int64"},    // rotate right arg0 by auxint, shift amount 0-63
+		{name: "RORIW", argLength: 1, reg: gp11, asm: "RORIW", aux: "Int64"},  // rotate right least significant word of arg0 by auxint, shift amount 0-31, sign extended
+		{name: "RORW", argLength: 2, reg: gp21, asm: "RORW"},                  // rotate right least significant word of arg0 by (arg1 & 31), sign extended
+		{name: "XOR", argLength: 2, reg: gp21, asm: "XOR", commutative: true}, // arg0 ^ arg1
+		{name: "XORI", argLength: 1, reg: gp11, asm: "XORI", aux: "Int64"},    // arg0 ^ auxint
 
 		// Generate boolean values
 		{name: "SEQZ", argLength: 1, reg: gp11, asm: "SEQZ"},                 // arg0 == 0, result is 0 or 1
@@ -460,38 +468,6 @@ func init() {
 		{name: "FLED", argLength: 2, reg: fp2gp, asm: "FLED"},                                                                               // arg0 <= arg1
 		{name: "LoweredFMIND", argLength: 2, reg: fp21, resultNotInArgs: true, asm: "FMIND", commutative: true, typ: "Float64"},             // min(arg0, arg1)
 		{name: "LoweredFMAXD", argLength: 2, reg: fp21, resultNotInArgs: true, asm: "FMAXD", commutative: true, typ: "Float64"},             // max(arg0, arg1)
-
-		// rva22u64 Extension
-		{name: "ADDUW", argLength: 2, reg: gp21, asm: "ADDUW"},
-		{name: "SH1ADD", argLength: 2, reg: gp21, asm: "SH1ADD"},
-		{name: "SH1ADDUW", argLength: 2, reg: gp21, asm: "SH1ADDUW"},
-		{name: "SH2ADD", argLength: 2, reg: gp21, asm: "SH2ADD"},
-		{name: "SH2ADDUW", argLength: 2, reg: gp21, asm: "SH2ADDUW"},
-		{name: "SH3ADD", argLength: 2, reg: gp21, asm: "SH3ADD"},
-		{name: "SH3ADDUW", argLength: 2, reg: gp21, asm: "SH3ADDUW"},
-		{name: "SLLIUW", argLength: 1, reg: gp11, asm: "SLLIUW", aux: "Int64"},
-		{name: "ANDN", argLength: 2, reg: gp21, asm: "ANDN"},
-		{name: "CLZ", argLength: 1, reg: gp11, asm: "CLZ", typ: "UInt32"},
-		{name: "CLZW", argLength: 1, reg: gp11, asm: "CLZW", typ: "UInt32"},
-		{name: "CPOP", argLength: 1, reg: gp11, asm: "CPOP", typ: "UInt32"},
-		{name: "CPOPW", argLength: 1, reg: gp11, asm: "CPOPW", typ: "UInt32"},
-		{name: "CTZ", argLength: 1, reg: gp11, asm: "CTZ", typ: "UInt32"},
-		{name: "CTZW", argLength: 1, reg: gp11, asm: "CTZW", typ: "UInt32"},
-		{name: "ORN", argLength: 2, reg: gp21, asm: "ORN"},
-		{name: "REV8", argLength: 1, reg: gp11, asm: "REV8", typ: "UInt64"},
-		{name: "ROL", argLength: 2, reg: gp21, asm: "ROL"},
-		{name: "ROLW", argLength: 2, reg: gp21, asm: "ROLW"},
-		{name: "RORI", argLength: 1, reg: gp11, asm: "RORI", aux: "Int64"},
-		{name: "RORIW", argLength: 1, reg: gp11, asm: "RORIW", aux: "Int64"},
-		{name: "XNOR", argLength: 2, reg: gp21, asm: "XNOR", commutative: true},
-		{name: "BCLR", argLength: 2, reg: gp21, asm: "BCLR"},
-		{name: "BCLRI", argLength: 1, reg: gp11, asm: "BCLRI", aux: "Int64"},
-		{name: "BEXT", argLength: 2, reg: gp21, asm: "BEXT"},
-		{name: "BEXTI", argLength: 1, reg: gp11, asm: "BEXTI", aux: "Int64"},
-		{name: "BINV", argLength: 2, reg: gp21, asm: "BINV"},
-		{name: "BINVI", argLength: 1, reg: gp11, asm: "BINVI", aux: "Int64"},
-		{name: "BSET", argLength: 2, reg: gp21, asm: "BSET"},
-		{name: "BSETI", argLength: 1, reg: gp11, asm: "BSETI", aux: "Int64"},
 	}
 
 	RISCV64blocks := []blockData{

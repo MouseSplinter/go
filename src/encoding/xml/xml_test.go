@@ -830,6 +830,13 @@ var procInstTests = []struct {
 	{`version="1.0" encoding='utf-8' `, [2]string{"1.0", "utf-8"}},
 	{`version="1.0" encoding=utf-8`, [2]string{"1.0", ""}},
 	{`encoding="FOO" `, [2]string{"", "FOO"}},
+	{`version=2.0 version="1.0" encoding=utf-7 encoding='utf-8'`, [2]string{"1.0", "utf-8"}},
+	{`version= encoding=`, [2]string{"", ""}},
+	{`encoding="version=1.0"`, [2]string{"", "version=1.0"}},
+	{``, [2]string{"", ""}},
+	// TODO: what's the right approach to handle these nested cases?
+	{`encoding="version='1.0'"`, [2]string{"1.0", "version='1.0'"}},
+	{`version="encoding='utf-8'"`, [2]string{"encoding='utf-8'", "utf-8"}},
 }
 
 func TestProcInstEncoding(t *testing.T) {
@@ -1339,6 +1346,8 @@ func TestParseErrors(t *testing.T) {
 		{withDefaultHeader(`<!- not ok -->`), `invalid sequence <!- not part of <!--`},
 		{withDefaultHeader(`<!-? not ok -->`), `invalid sequence <!- not part of <!--`},
 		{withDefaultHeader(`<![not ok]>`), `invalid <![ sequence`},
+		{withDefaultHeader(`<zzz:foo xmlns:zzz="http://example.com"><bar>baz</bar></foo>`),
+			`element <foo> in space zzz closed by </foo> in space ""`},
 		{withDefaultHeader("\xf1"), `invalid UTF-8`},
 
 		// Header-related errors.
@@ -1370,7 +1379,7 @@ func TestParseErrors(t *testing.T) {
 			continue
 		}
 		if !strings.Contains(err.Error(), test.err) {
-			t.Errorf("parse %s: can't find %q error sudbstring\nerror: %q", test.src, test.err, err)
+			t.Errorf("parse %s: can't find %q error substring\nerror: %q", test.src, test.err, err)
 			continue
 		}
 	}

@@ -304,8 +304,8 @@ var fmtTests = []struct {
 	{"%2s", []byte("\u263a"), " ☺"},
 	{"%-5s", "abc", "abc  "},
 	{"%-5s", []byte("abc"), "abc  "},
-	{"%05s", "abc", "  abc"},
-	{"%05s", []byte("abc"), "  abc"},
+	{"%05s", "abc", "00abc"},
+	{"%05s", []byte("abc"), "00abc"},
 	{"%5s", "abcdefghijklmnopqrstuvwxyz", "abcdefghijklmnopqrstuvwxyz"},
 	{"%5s", []byte("abcdefghijklmnopqrstuvwxyz"), "abcdefghijklmnopqrstuvwxyz"},
 	{"%.5s", "abcdefghijklmnopqrstuvwxyz", "abcde"},
@@ -1501,6 +1501,7 @@ var flagtests = []struct {
 	{"%-+1.2a", "[%+-1.2a]"},
 	{"%-+1.2abc", "[%+-1.2a]bc"},
 	{"%-1.2abc", "[%-1.2a]bc"},
+	{"%-0abc", "[%-0a]bc"},
 }
 
 func TestFlagParser(t *testing.T) {
@@ -1827,6 +1828,7 @@ var formatterFlagTests = []struct {
 	{"%-+1.2a", flagPrinter{}, "[%+-1.2a]"},
 	{"%-+1.2abc", flagPrinter{}, "[%+-1.2a]bc"},
 	{"%-1.2abc", flagPrinter{}, "[%-1.2a]bc"},
+	{"%-0abc", flagPrinter{}, "[%-0a]bc"},
 
 	// composite values with the 'a' verb
 	{"%a", [1]flagPrinter{}, "[[%a]]"},
@@ -1841,6 +1843,7 @@ var formatterFlagTests = []struct {
 	{"%-+1.2a", [1]flagPrinter{}, "[[%+-1.2a]]"},
 	{"%-+1.2abc", [1]flagPrinter{}, "[[%+-1.2a]]bc"},
 	{"%-1.2abc", [1]flagPrinter{}, "[[%-1.2a]]bc"},
+	{"%-0abc", [1]flagPrinter{}, "[[%-0a]]bc"},
 
 	// simple values with the 'v' verb
 	{"%v", flagPrinter{}, "[%v]"},
@@ -1855,6 +1858,7 @@ var formatterFlagTests = []struct {
 	{"%-+1.2v", flagPrinter{}, "[%+-1.2v]"},
 	{"%-+1.2vbc", flagPrinter{}, "[%+-1.2v]bc"},
 	{"%-1.2vbc", flagPrinter{}, "[%-1.2v]bc"},
+	{"%-0vbc", flagPrinter{}, "[%-0v]bc"},
 
 	// composite values with the 'v' verb.
 	{"%v", [1]flagPrinter{}, "[[%v]]"},
@@ -1869,6 +1873,7 @@ var formatterFlagTests = []struct {
 	{"%-+1.2v", [1]flagPrinter{}, "[[%+-1.2v]]"},
 	{"%-+1.2vbc", [1]flagPrinter{}, "[[%+-1.2v]]bc"},
 	{"%-1.2vbc", [1]flagPrinter{}, "[[%-1.2v]]bc"},
+	{"%-0vbc", [1]flagPrinter{}, "[[%-0v]]bc"},
 }
 
 func TestFormatterFlags(t *testing.T) {

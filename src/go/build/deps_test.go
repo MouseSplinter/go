@@ -69,12 +69,14 @@ var depsRules = `
 	< internal/itoa
 	< internal/unsafeheader
 	< runtime/internal/sys
-	< runtime/internal/syscall
+	< internal/runtime/syscall
 	< runtime/internal/atomic
 	< runtime/internal/math
 	< runtime
 	< sync/atomic
 	< internal/race
+	< internal/msan
+	< internal/asan
 	< sync
 	< internal/bisect
 	< internal/godebug
@@ -630,7 +632,10 @@ var depsRules = `
 	FMT, encoding/binary, internal/trace/v2/version
 	< internal/trace/v2/raw;
 
-	FMT, encoding/binary, internal/trace/v2/version
+	FMT, internal/trace/v2/event, internal/trace/v2/version, io, sort, encoding/binary
+	< internal/trace/v2/internal/oldtrace;
+
+	FMT, encoding/binary, internal/trace/v2/version, internal/trace/v2/internal/oldtrace
 	< internal/trace/v2;
 
 	regexp, internal/trace/v2, internal/trace/v2/raw, internal/txtar

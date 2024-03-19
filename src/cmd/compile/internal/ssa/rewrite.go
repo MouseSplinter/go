@@ -1294,7 +1294,7 @@ func zeroUpper32Bits(x *Value, depth int) bool {
 		OpARM64MULW, OpARM64MNEGW, OpARM64UDIVW, OpARM64DIVW, OpARM64UMODW,
 		OpARM64MADDW, OpARM64MSUBW, OpARM64RORW, OpARM64RORWconst:
 		return true
-	case OpArg:
+	case OpArg: // note: but not ArgIntReg
 		return x.Type.Size() == 4
 	case OpPhi, OpSelect0, OpSelect1:
 		// Phis can use each-other as an arguments, instead of tracking visited values,
@@ -1318,7 +1318,7 @@ func zeroUpper48Bits(x *Value, depth int) bool {
 	switch x.Op {
 	case OpAMD64MOVWQZX, OpAMD64MOVWload, OpAMD64MOVWloadidx1, OpAMD64MOVWloadidx2:
 		return true
-	case OpArg:
+	case OpArg: // note: but not ArgIntReg
 		return x.Type.Size() == 2
 	case OpPhi, OpSelect0, OpSelect1:
 		// Phis can use each-other as an arguments, instead of tracking visited values,
@@ -1342,7 +1342,7 @@ func zeroUpper56Bits(x *Value, depth int) bool {
 	switch x.Op {
 	case OpAMD64MOVBQZX, OpAMD64MOVBload, OpAMD64MOVBloadidx1:
 		return true
-	case OpArg:
+	case OpArg: // note: but not ArgIntReg
 		return x.Type.Size() == 1
 	case OpPhi, OpSelect0, OpSelect1:
 		// Phis can use each-other as an arguments, instead of tracking visited values,
@@ -2131,8 +2131,8 @@ func logicFlags32(x int32) flagConstant {
 
 func makeJumpTableSym(b *Block) *obj.LSym {
 	s := base.Ctxt.Lookup(fmt.Sprintf("%s.jump%d", b.Func.fe.Func().LSym.Name, b.ID))
-	s.Set(obj.AttrDuplicateOK, true)
-	s.Set(obj.AttrLocal, true)
+	// The jump table symbol is accessed only from the function symbol.
+	s.Set(obj.AttrStatic, true)
 	return s
 }
 
@@ -2144,7 +2144,7 @@ func canRotate(c *Config, bits int64) bool {
 		return false
 	}
 	switch c.arch {
-	case "386", "amd64", "arm64":
+	case "386", "amd64", "arm64", "riscv64":
 		return true
 	case "arm", "s390x", "ppc64", "ppc64le", "wasm", "loong64":
 		return bits >= 32

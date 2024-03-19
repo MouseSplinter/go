@@ -37,13 +37,13 @@ func NewParser() *md.Parser {
 // CheckFragment reports problems in a release-note fragment.
 func CheckFragment(data string) error {
 	doc := NewParser().Parse(data)
-	if len(doc.Blocks) == 0 {
-		return errors.New("empty content")
-	}
 	// Check that the content of the document contains either a TODO or at least one sentence.
-	txt := text(doc)
+	txt := ""
+	if len(doc.Blocks) > 0 {
+		txt = text(doc)
+	}
 	if !strings.Contains(txt, "TODO") && !strings.ContainsAny(txt, ".?!") {
-		return errors.New("needs a TODO or a sentence")
+		return errors.New("File must contain a complete sentence or a TODO.")
 	}
 	return nil
 }
@@ -105,7 +105,15 @@ func inlineText(ins []md.Inline) string {
 //
 // Files in the "minor changes" directory (the unique directory matching the glob
 // "*stdlib/*minor") are named after the package to which they refer, and will have
-// the package heading inserted automatically.
+// the package heading inserted automatically and links to other standard library
+// symbols expanded automatically. For example, if a file *stdlib/minor/bytes/f.md
+// contains the text
+//
+//	[Reader] implements [io.Reader].
+//
+// then that will become
+//
+//	[Reader](/pkg/bytes#Reader) implements [io.Reader](/pkg/io#Reader).
 func Merge(fsys fs.FS) (*md.Document, error) {
 	filenames, err := sortedMarkdownFilenames(fsys)
 	if err != nil {
@@ -121,10 +129,12 @@ func Merge(fsys fs.FS) (*md.Document, error) {
 		if len(newdoc.Blocks) == 0 {
 			continue
 		}
+		pkg := stdlibPackage(filename)
+		// Autolink Go symbols.
+		addSymbolLinks(newdoc, pkg)
 		if len(doc.Blocks) > 0 {
 			// If this is the first file of a new stdlib package under the "Minor changes
 			// to the library" section, insert a heading for the package.
-			pkg := stdlibPackage(filename)
 			if pkg != "" && pkg != prevPkg {
 				h := stdlibPackageHeading(pkg, lastBlock(doc).Pos().EndLine)
 				doc.Blocks = append(doc.Blocks, h)
@@ -317,16 +327,20 @@ func parseMarkdownFile(fsys fs.FS, path string) (*md.Document, error) {
 // like the ones in the main go repo in the api directory.
 type APIFeature struct {
 	Package string // package that the feature is in
+	Build   string // build that the symbol is relevant for (e.g. GOOS, GOARCH)
 	Feature string // everything about the feature other than the package
 	Issue   int    // the issue that introduced the feature, or 0 if none
 }
 
-var apiFileLineRegexp = regexp.MustCompile(`^pkg ([^,]+), ([^#]*)(#\d+)?$`)
+// This regexp has four capturing groups: package, build, feature and issue.
+var apiFileLineRegexp = regexp.MustCompile(`^pkg ([^ \t]+)[ \t]*(\([^)]+\))?, ([^#]*)(#\d+)?$`)
 
 // parseAPIFile parses a file in the api format and returns a list of the file's features.
 // A feature is represented by a single line that looks like
 //
-//	PKG WORDS #ISSUE
+//	pkg PKG (BUILD) FEATURE #ISSUE
+//
+// where the BUILD and ISSUE may be absent.
 func parseAPIFile(fsys fs.FS, filename string) ([]APIFeature, error) {
 	f, err := fsys.Open(filename)
 	if err != nil {
@@ -337,20 +351,24 @@ func parseAPIFile(fsys fs.FS, filename string) ([]APIFeature, error) {
 	scan := bufio.NewScanner(f)
 	for scan.Scan() {
 		line := strings.TrimSpace(scan.Text())
-		if line == "" {
+		if line == "" || line[0] == '#' {
 			continue
 		}
 		matches := apiFileLineRegexp.FindStringSubmatch(line)
 		if len(matches) == 0 {
 			return nil, fmt.Errorf("%s: malformed line %q", filename, line)
 		}
+		if len(matches) != 5 {
+			return nil, fmt.Errorf("wrong number of matches for line %q", line)
+		}
 		f := APIFeature{
 			Package: matches[1],
-			Feature: strings.TrimSpace(matches[2]),
+			Build:   matches[2],
+			Feature: strings.TrimSpace(matches[3]),
 		}
-		if len(matches) > 3 && len(matches[3]) > 0 {
+		if issue := matches[4]; issue != "" {
 			var err error
-			f.Issue, err = strconv.Atoi(matches[3][1:]) // skip leading '#'
+			f.Issue, err = strconv.Atoi(issue[1:]) // skip leading '#'
 			if err != nil {
 				return nil, err
 			}
@@ -382,7 +400,9 @@ func GroupAPIFeaturesByFile(fs []APIFeature) (map[string][]APIFeature, error) {
 // CheckAPIFile reads the api file at filename in apiFS, and checks the corresponding
 // release-note files under docFS. It checks that the files exist and that they have
 // some minimal content (see [CheckFragment]).
-func CheckAPIFile(apiFS fs.FS, filename string, docFS fs.FS) error {
+// The docRoot argument is the path from the repo or project root to the root of docFS.
+// It is used only for error messages.
+func CheckAPIFile(apiFS fs.FS, filename string, docFS fs.FS, docRoot string) error {
 	features, err := parseAPIFile(apiFS, filename)
 	if err != nil {
 		return err
@@ -396,21 +416,47 @@ func CheckAPIFile(apiFS fs.FS, filename string, docFS fs.FS) error {
 		filenames = append(filenames, fn)
 	}
 	slices.Sort(filenames)
+	mcDir, err := minorChangesDir(docFS)
+	if err != nil {
+		return err
+	}
 	var errs []error
-	for _, filename := range filenames {
+	for _, fn := range filenames {
+		// Use path.Join for consistency with io/fs pathnames.
+		fn = path.Join(mcDir, fn)
 		// TODO(jba): check that the file mentions each feature?
-		if err := checkFragmentFile(docFS, filename); err != nil {
-			errs = append(errs, fmt.Errorf("%s: %v", filename, err))
+		if err := checkFragmentFile(docFS, fn); err != nil {
+			errs = append(errs, fmt.Errorf("%s: %v\nSee doc/README.md for more information.", path.Join(docRoot, fn), err))
 		}
 	}
 	return errors.Join(errs...)
+}
+
+// minorChangesDir returns the unique directory in docFS that corresponds to the
+// "Minor changes to the standard library" section of the release notes.
+func minorChangesDir(docFS fs.FS) (string, error) {
+	dirs, err := fs.Glob(docFS, "*stdlib/*minor")
+	if err != nil {
+		return "", err
+	}
+	var bad string
+	if len(dirs) == 0 {
+		bad = "No"
+	} else if len(dirs) > 1 {
+		bad = "More than one"
+	}
+	if bad != "" {
+		return "", fmt.Errorf("%s directory matches *stdlib/*minor.\nThis shouldn't happen; please file a bug at https://go.dev/issues/new.",
+			bad)
+	}
+	return dirs[0], nil
 }
 
 func checkFragmentFile(fsys fs.FS, filename string) error {
 	f, err := fsys.Open(filename)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			err = fs.ErrNotExist
+			err = errors.New("File does not exist. Every API change must have a corresponding release note file.")
 		}
 		return err
 	}

@@ -206,7 +206,7 @@ func dumptype(t *_type) {
 		dwritebyte('.')
 		dwrite(unsafe.Pointer(unsafe.StringData(name)), uintptr(len(name)))
 	}
-	dumpbool(t.Kind_&kindDirectIface == 0 || t.PtrBytes != 0)
+	dumpbool(t.Kind_&kindDirectIface == 0 || t.Pointers())
 }
 
 // dump an object.
@@ -540,7 +540,7 @@ func dumpparams() {
 }
 
 func itab_callback(tab *itab) {
-	t := tab._type
+	t := tab.Type
 	dumptype(t)
 	dumpint(tagItab)
 	dumpint(uint64(uintptr(unsafe.Pointer(tab))))
@@ -735,9 +735,7 @@ func makeheapobjbv(p uintptr, size uintptr) bitvector {
 		tmpbuf = (*[1 << 30]byte)(p)[:n]
 	}
 	// Convert heap bitmap to pointer bitmap.
-	for i := uintptr(0); i < nptr/8+1; i++ {
-		tmpbuf[i] = 0
-	}
+	clear(tmpbuf[:nptr/8+1])
 	if goexperiment.AllocHeaders {
 		s := spanOf(p)
 		tp := s.typePointersOf(p, size)

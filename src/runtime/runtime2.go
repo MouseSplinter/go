@@ -506,6 +506,7 @@ type g struct {
 	cgoCtxt       []uintptr      // cgo traceback context
 	labels        unsafe.Pointer // profiler labels
 	timer         *timer         // cached timer for time.Sleep
+	sleepWhen     int64          // when to sleep until
 	selectDone    atomic.Uint32  // are we participating in a select and did someone win the race?
 
 	coroarg *coro // argument during coroutine transfers
@@ -708,16 +709,6 @@ type p struct {
 
 	palloc persistentAlloc // per-P to avoid mutex
 
-	// The when field of the first entry on the timer heap.
-	// This is 0 if the timer heap is empty.
-	timer0When atomic.Int64
-
-	// The earliest known nextwhen field of a timer with
-	// timerModifiedEarlier status. Because the timer may have been
-	// modified again, there need not be any timer with this value.
-	// This is 0 if there are no timerModifiedEarlier timers.
-	timerModifiedEarliest atomic.Int64
-
 	// Per-P GC state
 	gcAssistTime         int64 // Nanoseconds in assistAlloc
 	gcFractionalMarkTime int64 // Nanoseconds in fractional mark worker (atomic)
@@ -751,23 +742,8 @@ type p struct {
 	// writing any stats. Its value is even when not, odd when it is.
 	statsSeq atomic.Uint32
 
-	// Lock for timers. We normally access the timers while running
-	// on this P, but the scheduler can also do it from a different P.
-	timersLock mutex
-
-	// Actions to take at some time. This is used to implement the
-	// standard library's time package.
-	// Must hold timersLock to access.
-	timers []*timer
-
-	// Number of timers in P's heap.
-	numTimers atomic.Uint32
-
-	// Number of timerDeleted timers in P's heap.
-	deletedTimers atomic.Uint32
-
-	// Race context used while executing timer functions.
-	timerRaceCtx uintptr
+	// Timer heap.
+	timers timers
 
 	// maxStackScanDelta accumulates the amount of stack space held by
 	// live goroutines (i.e. those eligible for stack scanning).
@@ -990,17 +966,7 @@ type funcinl struct {
 	startLine int32
 }
 
-// layout of Itab known to compilers
-// allocated in non-garbage-collected memory
-// Needs to be in sync with
-// ../cmd/compile/internal/reflectdata/reflect.go:/^func.WritePluginTable.
-type itab struct {
-	inter *interfacetype
-	_type *_type
-	hash  uint32 // copy of _type.hash. Used for type switches.
-	_     [4]byte
-	fun   [1]uintptr // variable sized. fun[0]==0 means _type does not implement inter.
-}
+type itab = abi.ITab
 
 // Lock-free stack node.
 // Also known to export_test.go.
@@ -1191,13 +1157,17 @@ var (
 	forcegc    forcegcstate
 	sched      schedt
 	newprocs   int32
+)
 
+var (
 	// allpLock protects P-less reads and size changes of allp, idlepMask,
 	// and timerpMask, and all writes to allp.
 	allpLock mutex
+
 	// len(allp) == gomaxprocs; may change at safe points, otherwise
 	// immutable.
 	allp []*p
+
 	// Bitmask of Ps in _Pidle list, one bit per P. Reads and writes must
 	// be atomic. Length may change at safe points.
 	//
@@ -1209,10 +1179,37 @@ var (
 	//
 	// N.B., procresize takes ownership of all Ps in stopTheWorldWithSema.
 	idlepMask pMask
+
 	// Bitmask of Ps that may have a timer, one bit per P. Reads and writes
 	// must be atomic. Length may change at safe points.
+	//
+	// Ideally, the timer mask would be kept immediately consistent on any timer
+	// operations. Unfortunately, updating a shared global data structure in the
+	// timer hot path adds too much overhead in applications frequently switching
+	// between no timers and some timers.
+	//
+	// As a compromise, the timer mask is updated only on pidleget / pidleput. A
+	// running P (returned by pidleget) may add a timer at any time, so its mask
+	// must be set. An idle P (passed to pidleput) cannot add new timers while
+	// idle, so if it has no timers at that time, its mask may be cleared.
+	//
+	// Thus, we get the following effects on timer-stealing in findrunnable:
+	//
+	//   - Idle Ps with no timers when they go idle are never checked in findrunnable
+	//     (for work- or timer-stealing; this is the ideal case).
+	//   - Running Ps must always be checked.
+	//   - Idle Ps whose timers are stolen must continue to be checked until they run
+	//     again, even after timer expiration.
+	//
+	// When the P starts running again, the mask should be set, as a timer may be
+	// added at any time.
+	//
+	// TODO(prattmic): Additional targeted updates may improve the above cases.
+	// e.g., updating the mask when stealing a timer.
 	timerpMask pMask
+)
 
+var (
 	// Pool of GC parked background workers. Entries are type
 	// *gcBgMarkWorkerNode.
 	gcBgMarkWorkerPool lfstack

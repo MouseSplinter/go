@@ -691,6 +691,14 @@ func (t *tester) registerTests() {
 			})
 	}
 
+	// Check that all crypto packages compile with the purego build tag.
+	t.registerTest("crypto with tag purego", &goTest{
+		variant:  "purego",
+		tags:     []string{"purego"},
+		pkg:      "crypto/...",
+		runTests: "^$", // only ensure they compile
+	})
+
 	// Test ios/amd64 for the iOS simulator.
 	if goos == "darwin" && goarch == "amd64" && t.cgoEnabled {
 		t.registerTest("GOOS=ios on darwin/amd64",
@@ -705,18 +713,20 @@ func (t *tester) registerTests() {
 
 	// Runtime CPU tests.
 	if !t.compileOnly && t.hasParallelism() {
-		t.registerTest("GOMAXPROCS=2 runtime -cpu=1,2,4 -quick",
-			&goTest{
-				variant:   "cpu124",
-				timeout:   300 * time.Second,
-				cpu:       "1,2,4",
-				short:     true,
-				testFlags: []string{"-quick"},
-				// We set GOMAXPROCS=2 in addition to -cpu=1,2,4 in order to test runtime bootstrap code,
-				// creation of first goroutines and first garbage collections in the parallel setting.
-				env: []string{"GOMAXPROCS=2"},
-				pkg: "runtime",
-			})
+		for i := 1; i <= 4; i *= 2 {
+			t.registerTest(fmt.Sprintf("GOMAXPROCS=2 runtime -cpu=%d -quick", i),
+				&goTest{
+					variant:   "cpu" + strconv.Itoa(i),
+					timeout:   300 * time.Second,
+					cpu:       strconv.Itoa(i),
+					short:     true,
+					testFlags: []string{"-quick"},
+					// We set GOMAXPROCS=2 in addition to -cpu=1,2,4 in order to test runtime bootstrap code,
+					// creation of first goroutines and first garbage collections in the parallel setting.
+					env: []string{"GOMAXPROCS=2"},
+					pkg: "runtime",
+				})
+		}
 	}
 
 	// GOEXPERIMENT=rangefunc tests
@@ -1428,7 +1438,7 @@ func (t *tester) registerRaceTests() {
 		// Building cmd/cgo/internal/test takes a long time.
 		// There are already cgo-enabled packages being tested with the race detector.
 		// We shouldn't need to redo all of cmd/cgo/internal/test too.
-		// The race buildler will take care of this.
+		// The race builder will take care of this.
 		// t.registerTest(hdr, &goTest{variant: "race", race: true, env: []string{"GOTRACEBACK=2"}, pkg: "cmd/cgo/internal/test"})
 	}
 	if t.extLink() {
@@ -1627,6 +1637,7 @@ func buildModeSupported(compiler, buildmode, goos, goarch string) bool {
 			"darwin/amd64", "darwin/arm64",
 			"ios/amd64", "ios/arm64",
 			"aix/ppc64",
+			"openbsd/arm64",
 			"windows/386", "windows/amd64", "windows/arm", "windows/arm64":
 			return true
 		}

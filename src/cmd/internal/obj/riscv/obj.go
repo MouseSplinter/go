@@ -26,9 +26,9 @@ import (
 	"cmd/internal/sys"
 	"fmt"
 	"internal/abi"
-	"internal/buildcfg"
 	"log"
 	"math/bits"
+	"strings"
 )
 
 func buildop(ctxt *obj.Link) {}
@@ -2157,41 +2157,25 @@ func instructionsForMOV(p *obj.Prog) []*instruction {
 		case AMOVD: // MOVD Ra, Rb -> FSGNJD Ra, Ra, Rb
 			ins.as, ins.rs1 = AFSGNJD, uint32(p.From.Reg)
 		case AMOVB, AMOVH:
-			if buildcfg.GORISCV64 >= 22 {
-				// Use SEXTB or SEXTH to extend.
-				ins.as, ins.rs1, ins.rs2 = ASEXTB, uint32(p.From.Reg), obj.REG_NONE
-				if p.As == AMOVH {
-					ins.as = ASEXTH
-				}
-			} else {
-				// Use SLLI/SRAI to extend.
-				ins.as, ins.rs1, ins.rs2 = ASLLI, uint32(p.From.Reg), obj.REG_NONE
-				if p.As == AMOVB {
-					ins.imm = 56
-				} else if p.As == AMOVH {
-					ins.imm = 48
-				}
-				ins2 := &instruction{as: ASRAI, rd: ins.rd, rs1: ins.rd, imm: ins.imm}
-				inss = append(inss, ins2)
+			// Use SLLI/SRAI to extend.
+			ins.as, ins.rs1, ins.rs2 = ASLLI, uint32(p.From.Reg), obj.REG_NONE
+			if p.As == AMOVB {
+				ins.imm = 56
+			} else if p.As == AMOVH {
+				ins.imm = 48
 			}
+			ins2 := &instruction{as: ASRAI, rd: ins.rd, rs1: ins.rd, imm: ins.imm}
+			inss = append(inss, ins2)
 		case AMOVHU, AMOVWU:
-			if buildcfg.GORISCV64 >= 22 {
-				// Use ZEXTH or ADDUW to extend.
-				ins.as, ins.rs1, ins.rs2 = AZEXTH, uint32(p.From.Reg), obj.REG_NONE
-				if p.As == AMOVWU {
-					ins.as, ins.rs2 = AADDUW, REG_ZERO
-				}
-			} else {
-				// Use SLLI/SRLI to extend.
-				ins.as, ins.rs1, ins.rs2 = ASLLI, uint32(p.From.Reg), obj.REG_NONE
-				if p.As == AMOVHU {
-					ins.imm = 48
-				} else if p.As == AMOVWU {
-					ins.imm = 32
-				}
-				ins2 := &instruction{as: ASRLI, rd: ins.rd, rs1: ins.rd, imm: ins.imm}
-				inss = append(inss, ins2)
+			// Use SLLI/SRLI to extend.
+			ins.as, ins.rs1, ins.rs2 = ASLLI, uint32(p.From.Reg), obj.REG_NONE
+			if p.As == AMOVHU {
+				ins.imm = 48
+			} else if p.As == AMOVWU {
+				ins.imm = 32
 			}
+			ins2 := &instruction{as: ASRLI, rd: ins.rd, rs1: ins.rd, imm: ins.imm}
+			inss = append(inss, ins2)
 		}
 
 	case p.From.Type == obj.TYPE_MEM && p.To.Type == obj.TYPE_REG:
@@ -2288,6 +2272,47 @@ func instructionsForMOV(p *obj.Prog) []*instruction {
 	return inss
 }
 
+// instructionsForRotate returns the machine instructions for a bitwise rotation.
+func instructionsForRotate(p *obj.Prog, ins *instruction) []*instruction {
+	switch ins.as {
+	case AROL, AROLW, AROR, ARORW:
+		// ROL -> OR (SLL x y) (SRL x (NEG y))
+		// ROR -> OR (SRL x y) (SLL x (NEG y))
+		sllOp, srlOp := ASLL, ASRL
+		if ins.as == AROLW || ins.as == ARORW {
+			sllOp, srlOp = ASLLW, ASRLW
+		}
+		shift1, shift2 := sllOp, srlOp
+		if ins.as == AROR || ins.as == ARORW {
+			shift1, shift2 = shift2, shift1
+		}
+		return []*instruction{
+			&instruction{as: ASUB, rs1: REG_ZERO, rs2: ins.rs2, rd: REG_TMP},
+			&instruction{as: shift2, rs1: ins.rs1, rs2: REG_TMP, rd: REG_TMP},
+			&instruction{as: shift1, rs1: ins.rs1, rs2: ins.rs2, rd: ins.rd},
+			&instruction{as: AOR, rs1: REG_TMP, rs2: ins.rd, rd: ins.rd},
+		}
+
+	case ARORI, ARORIW:
+		// ROR -> OR (SLLI -x y) (SRLI x y)
+		sllOp, srlOp := ASLLI, ASRLI
+		sllImm := int64(int8(-ins.imm) & 63)
+		if ins.as == ARORIW {
+			sllOp, srlOp = ASLLIW, ASRLIW
+			sllImm = int64(int8(-ins.imm) & 31)
+		}
+		return []*instruction{
+			&instruction{as: srlOp, rs1: ins.rs1, rd: REG_TMP, imm: ins.imm},
+			&instruction{as: sllOp, rs1: ins.rs1, rd: ins.rd, imm: sllImm},
+			&instruction{as: AOR, rs1: REG_TMP, rs2: ins.rd, rd: ins.rd},
+		}
+
+	default:
+		p.Ctxt.Diag("%v: unknown rotation", p)
+		return nil
+	}
+}
+
 // instructionsForProg returns the machine instructions for an *obj.Prog.
 func instructionsForProg(p *obj.Prog) []*instruction {
 	ins := instructionForProg(p)
@@ -2369,8 +2394,12 @@ func instructionsForProg(p *obj.Prog) []*instruction {
 		ins.imm = 0x0ff
 
 	case AFCVTWS, AFCVTLS, AFCVTWUS, AFCVTLUS, AFCVTWD, AFCVTLD, AFCVTWUD, AFCVTLUD:
-		// Set the rounding mode in funct3 to round to zero.
-		ins.funct3 = 1
+		// Set the default rounding mode in funct3 to round to zero.
+		if p.Scond&rmSuffixBit == 0 {
+			ins.funct3 = uint32(RM_RTZ)
+		} else {
+			ins.funct3 = uint32(p.Scond &^ rmSuffixBit)
+		}
 
 	case AFNES, AFNED:
 		// Replace FNE[SD] with FEQ[SD] and NOT.
@@ -2454,14 +2483,17 @@ func instructionsForProg(p *obj.Prog) []*instruction {
 		ins.as = AFSGNJND
 		ins.rs1 = uint32(p.From.Reg)
 
-	case ABCLRI, ABEXTI, ABINVI, ABSETI, ARORI, ASLLI, ASRLI, ASRAI, ASLLIUW:
+	case AROL, AROLW, AROR, ARORW, ARORI, ARORIW:
+		inss = instructionsForRotate(p, ins)
+
+	case ASLLI, ASRLI, ASRAI:
 		if ins.imm < 0 || ins.imm > 63 {
-			p.Ctxt.Diag("%v: immediate out of range 0 to 63", p)
+			p.Ctxt.Diag("%v: shift amount out of range 0 to 63", p)
 		}
 
-	case ARORIW, ASLLIW, ASRLIW, ASRAIW:
+	case ASLLIW, ASRLIW, ASRAIW:
 		if ins.imm < 0 || ins.imm > 31 {
-			p.Ctxt.Diag("%v: immediate out of range 0 to 31", p)
+			p.Ctxt.Diag("%v: shift amount out of range 0 to 31", p)
 		}
 
 	case ACLZ, ACLZW, ACTZ, ACTZW, ACPOP, ACPOPW, ASEXTB, ASEXTH, AZEXTH:
@@ -2578,6 +2610,14 @@ func assemble(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 
 func isUnsafePoint(p *obj.Prog) bool {
 	return p.Mark&USES_REG_TMP == USES_REG_TMP || p.From.Reg == REG_TMP || p.To.Reg == REG_TMP || p.Reg == REG_TMP
+}
+
+func ParseSuffix(prog *obj.Prog, cond string) (err error) {
+	switch prog.As {
+	case AFCVTWS, AFCVTLS, AFCVTWUS, AFCVTLUS, AFCVTWD, AFCVTLD, AFCVTWUD, AFCVTLUD:
+		prog.Scond, err = rmSuffixEncode(strings.TrimPrefix(cond, "."))
+	}
+	return
 }
 
 var LinkRISCV64 = obj.LinkArch{

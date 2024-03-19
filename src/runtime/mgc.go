@@ -378,7 +378,7 @@ type workType struct {
 	// markDoneSema protects transitions from mark to mark termination.
 	markDoneSema uint32
 
-	bgMarkDone  uint32 // cas to 1 when at a background mark completion point
+	bgMarkDone uint32 // cas to 1 when at a background mark completion point
 	// Background mark completion signaling
 
 	// mode is the concurrency mode of the current GC cycle.
@@ -1665,9 +1665,7 @@ func gcResetMarkState() {
 	unlock(&mheap_.lock)
 	for _, ai := range arenas {
 		ha := mheap_.arenas[ai.l1()][ai.l2()]
-		for i := range ha.pageMarks {
-			ha.pageMarks[i] = 0
-		}
+		clear(ha.pageMarks[:])
 	}
 
 	work.bytesMarked = 0
