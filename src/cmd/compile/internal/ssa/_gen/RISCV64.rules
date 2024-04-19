@@ -834,3 +834,13 @@
 (F(MADD|NMADD|MSUB|NMSUB)S x y neg:(FNEGS z)) && neg.Uses == 1 => (F(MSUB|NMSUB|MADD|NMADD)S x y z)
 (F(MADD|NMADD|MSUB|NMSUB)D neg:(FNEGD x) y z) && neg.Uses == 1 => (F(NMSUB|MSUB|NMADD|MADD)D x y z)
 (F(MADD|NMADD|MSUB|NMSUB)D x y neg:(FNEGD z)) && neg.Uses == 1 => (F(MSUB|NMSUB|MADD|NMADD)D x y z)
+
+// Fold 
+(AND x (NOT (SLL (MOVDconst [1]) y))) && buildcfg.GORISCV64 >= 22 => (BCLR x y)
+(AND x (MOVDconst [y])) && isUint64PowerOfTwo(^y) && buildcfg.GORISCV64 >= 22 => (BCLRI [log64(^y)] x)
+(AND x (SLL (MOVDconst [1]) y)) && buildcfg.GORISCV64 >= 22 => (BEXT x y)
+(AND x (MOVDconst [y])) && oneBit64(y) && buildcfg.GORISCV64 >= 22 => (BEXTI [log64(y)] x)
+(XOR x (SLL (MOVDconst [1]) y)) && buildcfg.GORISCV64 >= 22 => (BINV x y)
+(XOR x (MOVDconst [y])) && oneBit64(y) && buildcfg.GORISCV64 >= 22 => (BINVI [log64(y)] x)
+(OR x (SLL (MOVDconst [1]) y)) && buildcfg.GORISCV64 >= 22 => (BSET x y)
+(OR x (MOVDconst [y])) && oneBit64(y) && buildcfg.GORISCV64 >= 22 => (BSETI [log64(y)] x)
