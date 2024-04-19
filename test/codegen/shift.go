@@ -474,3 +474,36 @@ func checkShiftToMask(u []uint64, s []int64) {
 	// amd64:-"SHR",-"SHL","ANDQ"
 	u[1] = u[1] << 5 >> 5
 }
+
+// ------------------------------- //
+//  least significant word shifts  //
+// ------------------------------- //
+
+func checkAddWithLeftShiftLowerUnsigned32Bits(a uint64, b int64) uint64 {
+	// riscv64/rva22u64: "SH1ADDUW\t"
+	x := a + uint64(uint32(b))<<1
+	// riscv64/rva22u64: "SH2ADDUW\t"
+	y := a + uint64(uint32(b))<<2
+	// riscv64/rva22u64: "SH3ADDUW\t"
+	z := a + uint64(uint32(b))<<3
+	return x + y + z
+}
+
+func checkLeftShiftLowerUnsigned32Bits(a int64) uint64 {
+	// riscv64/rva22u64: "SLLIUW\t"
+	return uint64(uint32(a)) << 6
+}
+
+// ---------------------- //
+//  add with left shifts  //
+// ---------------------- //
+
+func checkAddWithLeftShift(a int64, b int64) int64 {
+	// riscv64/rva22u64: "SH1ADD\t"
+	x := a + b<<1
+	// riscv64/rva22u64: "SH2ADD\t"
+	y := a + b<<2
+	// riscv64/rva22u64: "SH3ADD\t"
+	z := a + b<<3
+	return x + y + z
+}

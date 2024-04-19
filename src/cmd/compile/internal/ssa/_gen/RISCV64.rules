@@ -834,3 +834,18 @@
 (F(MADD|NMADD|MSUB|NMSUB)S x y neg:(FNEGS z)) && neg.Uses == 1 => (F(MSUB|NMSUB|MADD|NMADD)S x y z)
 (F(MADD|NMADD|MSUB|NMSUB)D neg:(FNEGD x) y z) && neg.Uses == 1 => (F(NMSUB|MSUB|NMADD|MADD)D x y z)
 (F(MADD|NMADD|MSUB|NMSUB)D x y neg:(FNEGD z)) && neg.Uses == 1 => (F(MSUB|NMSUB|MADD|NMADD)D x y z)
+
+// --------------------- rva22u64 --------------------- //
+// Fold left shift least significant word
+(SLLI [i] (MOVWUreg x)) && i < 64 && buildcfg.GORISCV64 >= 22 => (SLLIUW [i] x)
+
+// Fold the add with (left shift )least significant word
+(ADD (MOVWUreg x) y) && buildcfg.GORISCV64 >= 22 => (ADDUW x y)
+(ADD (SLLIUW [1] x) y) && buildcfg.GORISCV64 >= 22 => (SH1ADDUW x y)
+(ADD (SLLIUW [2] x) y) && buildcfg.GORISCV64 >= 22 => (SH2ADDUW x y)
+(ADD (SLLIUW [3] x) y) && buildcfg.GORISCV64 >= 22 => (SH3ADDUW x y)
+
+// Fold the add with left shift amount
+(ADD (SLLI [1] x) y) && buildcfg.GORISCV64 >= 22 => (SH1ADD x y)
+(ADD (SLLI [2] x) y) && buildcfg.GORISCV64 >= 22 => (SH2ADD x y)
+(ADD (SLLI [3] x) y) && buildcfg.GORISCV64 >= 22 => (SH3ADD x y)

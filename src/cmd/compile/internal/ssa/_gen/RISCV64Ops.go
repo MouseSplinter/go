@@ -468,6 +468,16 @@ func init() {
 		{name: "FLED", argLength: 2, reg: fp2gp, asm: "FLED"},                                                                               // arg0 <= arg1
 		{name: "LoweredFMIND", argLength: 2, reg: fp21, resultNotInArgs: true, asm: "FMIND", commutative: true, typ: "Float64"},             // min(arg0, arg1)
 		{name: "LoweredFMAXD", argLength: 2, reg: fp21, resultNotInArgs: true, asm: "FMAXD", commutative: true, typ: "Float64"},             // max(arg0, arg1)
+
+		// B extension.
+		{name: "ADDUW", argLength: 2, reg: gp21, asm: "ADDUW"},                 // ZeroExt32to64(Trunc64to32(arg0)) + arg1
+		{name: "SH1ADD", argLength: 2, reg: gp21, asm: "SH1ADD"},               // arg0<<1 + arg1
+		{name: "SH1ADDUW", argLength: 2, reg: gp21, asm: "SH1ADDUW"},           // ZeroExt32to64(Trunc64to32(arg0))<<1 + arg1
+		{name: "SH2ADD", argLength: 2, reg: gp21, asm: "SH2ADD"},               // arg0<<2 + arg1
+		{name: "SH2ADDUW", argLength: 2, reg: gp21, asm: "SH2ADDUW"},           // ZeroExt32to64(Trunc64to32(arg0))<<2 + arg1
+		{name: "SH3ADD", argLength: 2, reg: gp21, asm: "SH3ADD"},               // arg0<<3 + arg1
+		{name: "SH3ADDUW", argLength: 2, reg: gp21, asm: "SH3ADDUW"},           // ZeroExt32to64(Trunc64to32(arg0))<<3 + arg1
+		{name: "SLLIUW", argLength: 1, reg: gp11, asm: "SLLIUW", aux: "Int64"}, // ZeroExt32to64(Trunc64to32(arg0))<<auxint
 	}
 
 	RISCV64blocks := []blockData{
