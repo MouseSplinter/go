@@ -468,6 +468,17 @@ func init() {
 		{name: "FLED", argLength: 2, reg: fp2gp, asm: "FLED"},                                                                               // arg0 <= arg1
 		{name: "LoweredFMIND", argLength: 2, reg: fp21, resultNotInArgs: true, asm: "FMIND", commutative: true, typ: "Float64"},             // min(arg0, arg1)
 		{name: "LoweredFMAXD", argLength: 2, reg: fp21, resultNotInArgs: true, asm: "FMAXD", commutative: true, typ: "Float64"},             // max(arg0, arg1)
+
+		{name: "ANDN", argLength: 2, reg: gp21, asm: "ANDN"},                    // arg0 & ^arg1
+		{name: "ORN", argLength: 2, reg: gp21, asm: "ORN"},                      // arg0 | ^arg1
+		{name: "XNOR", argLength: 2, reg: gp21, asm: "XNOR", commutative: true}, // ^(arg0 ^ arg1)
+		{name: "CLZ", argLength: 1, reg: gp11, asm: "CLZ"},                      // count leading zeros bits in arg0
+		{name: "CLZW", argLength: 1, reg: gp11, asm: "CLZW"},                    // count leading zeros bits in low 32 bits of arg0
+		{name: "CPOP", argLength: 1, reg: gp11, asm: "CPOP"},                    // count set bits in arg0
+		{name: "CPOPW", argLength: 1, reg: gp11, asm: "CPOPW"},                  // count set bits in low 32 bits of arg0
+		{name: "CTZ", argLength: 1, reg: gp11, asm: "CTZ"},                      // count trailing bits in arg0
+		{name: "CTZW", argLength: 1, reg: gp11, asm: "CTZW"},                    // count trailing bits in low 32 bits of arg0
+		{name: "REV8", argLength: 1, reg: gp11, asm: "REV8"},                    // byte-reverse arg0
 	}
 
 	RISCV64blocks := []blockData{

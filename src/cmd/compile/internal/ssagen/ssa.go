@@ -5067,6 +5067,53 @@ func InitTables() {
 
 	/******** math/big ********/
 	alias("math/big", "mulWW", "math/bits", "Mul64", p8...)
+
+	if buildcfg.GORISCV64 >= 22 {
+		addF("math/bits", "Len64",
+			func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
+				return s.newValue1(ssa.OpBitLen64, types.Types[types.TINT], args[0])
+			},
+			sys.RISCV64)
+		addF("math/bits", "Len32",
+			func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
+				return s.newValue1(ssa.OpBitLen32, types.Types[types.TINT], args[0])
+			},
+			sys.RISCV64)
+		alias("math/bits", "Len", "math/bits", "Len64", sys.ArchRISCV64)
+
+		addF("math/bits", "OnesCount64",
+			func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
+				return s.newValue1(ssa.OpPopCount64, types.Types[types.TINT], args[0])
+			},
+			sys.RISCV64)
+		addF("math/bits", "OnesCount32",
+			func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
+				return s.newValue1(ssa.OpPopCount32, types.Types[types.TINT], args[0])
+			},
+			sys.RISCV64)
+		alias("math/bits", "OnesCount", "math/bits", "OnesCount64", sys.ArchRISCV64)
+
+		addF("math/bits", "TrailingZeros64",
+			func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
+				return s.newValue1(ssa.OpCtz64, types.Types[types.TINT], args[0])
+			},
+			sys.RISCV64)
+		addF("math/bits", "TrailingZeros32",
+			func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
+				return s.newValue1(ssa.OpCtz32, types.Types[types.TINT], args[0])
+			},
+			sys.RISCV64)
+		alias("math/bits", "TrailingZeros", "math/bits", "TrailingZeros64", sys.ArchRISCV64)
+		alias("runtime/internal/sys", "TrailingZeros64", "math/bits", "TrailingZeros64", sys.ArchRISCV64)
+		alias("runtime/internal/sys", "TrailingZeros32", "math/bits", "TrailingZeros32", sys.ArchRISCV64)
+
+		addF("runtime/internal/sys", "Bswap64",
+			func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
+				return s.newValue1(ssa.OpBswap64, types.Types[types.TUINT64], args[0])
+			},
+			sys.RISCV64)
+		alias("math/bits", "ReverseBytes64", "runtime/internal/sys", "Bswap64", sys.ArchRISCV64)
+	}
 }
 
 // findIntrinsic returns a function which builds the SSA equivalent of the

@@ -834,3 +834,20 @@
 (F(MADD|NMADD|MSUB|NMSUB)S x y neg:(FNEGS z)) && neg.Uses == 1 => (F(MSUB|NMSUB|MADD|NMADD)S x y z)
 (F(MADD|NMADD|MSUB|NMSUB)D neg:(FNEGD x) y z) && neg.Uses == 1 => (F(NMSUB|MSUB|NMADD|MADD)D x y z)
 (F(MADD|NMADD|MSUB|NMSUB)D x y neg:(FNEGD z)) && neg.Uses == 1 => (F(MSUB|NMSUB|MADD|NMADD)D x y z)
+
+// Fold bitwise ops with not
+(AND x (NOT y)) && buildcfg.GORISCV64 >= 22 => (ANDN x y)
+(OR x (NOT y))  && buildcfg.GORISCV64 >= 22 => (ORN x y)
+(NOT (XOR x y)) && buildcfg.GORISCV64 >= 22 => (XNOR x y)
+
+// Fold BitLen into CLZ
+(BitLen32 <t> x) && buildcfg.GORISCV64 >= 22 => (SUB (MOVDconst [32]) (CLZW <t> x))
+(BitLen64 <t> x) && buildcfg.GORISCV64 >= 22 => (SUB (MOVDconst [64]) (CLZ <t> x))
+
+// Use hardware instructions instead of software implementation on PopCount, Ctz and Bswap64
+(PopCount64 x) && buildcfg.GORISCV64 >= 22 => (CPOP x)
+(PopCount32 x) && buildcfg.GORISCV64 >= 22 => (CPOPW x)
+(Ctz(8|16|32|64)NonZero x) && buildcfg.GORISCV64 >= 22 => (Ctz(32|32|32|64) x)
+(Ctz64 x) && buildcfg.GORISCV64 >= 22 => (CTZ x)
+(Ctz32 x) && buildcfg.GORISCV64 >= 22 => (CTZW x)
+(Bswap64 x) && buildcfg.GORISCV64 >= 22 => (REV8 x)

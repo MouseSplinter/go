@@ -303,6 +303,7 @@ func and_mask_3(a, b uint32) (uint32, uint32) {
 
 func op_bic(x, y uint32) uint32 {
 	// arm64:`BIC\t`,-`AND`
+	// riscv64/rva22u64: `ANDN\t`
 	return x &^ y
 }
 
@@ -311,6 +312,7 @@ func op_eon(x, y, z uint32, a []uint32, n, m uint64) uint64 {
 	a[0] = x ^ (y ^ 0xffffffff)
 
 	// arm64:`EON\t`,-`EOR`,-`MVN`
+	// riscv64/rva22u64: `XNOR\t`
 	a[1] = ^(y ^ z)
 
 	// arm64:`EON\t`,-`XOR`
@@ -322,6 +324,7 @@ func op_eon(x, y, z uint32, a []uint32, n, m uint64) uint64 {
 
 func op_orn(x, y uint32) uint32 {
 	// arm64:`ORN\t`,-`ORR`
+	// riscv64/rva22u64: `ORN\t`
 	return x | ^y
 }
 
